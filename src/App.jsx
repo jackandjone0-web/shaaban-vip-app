@@ -1,0 +1,789 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import "./App.css";
+
+const Connection_URL = import.meta.env.VITE_Connection_URL || "http://146.190.239.21:5001";
+
+const DEFAULT_LOGOS = {
+  BTC: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
+  ETH: "https://assets.coingecko.com/coins/images/279/large/ethereum.png",
+  BNB: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",
+  SOL: "https://assets.coingecko.com/coins/images/4128/large/solana.png",
+  XRP: "https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png",
+  ADA: "https://assets.coingecko.com/coins/images/975/large/cardano.png",
+  AVAX: "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png",
+  LINK: "https://assets.coingecko.com/coins/images/877/large/chainlink-new-logo.png",
+  DOGE: "https://assets.coingecko.com/coins/images/5/large/dogecoin.png",
+  ONDO: "https://assets.coingecko.com/coins/images/26580/large/ONDO.png",
+  JUP: "https://assets.coingecko.com/coins/images/34188/large/jup.png",
+  PEPE: "https://assets.coingecko.com/coins/images/29850/large/pepe-token.jpeg",
+  WIF: "https://assets.coingecko.com/coins/images/33566/large/dogwifhat.jpg",
+  ARB: "https://assets.coingecko.com/coins/images/16547/large/arb.jpg",
+  OP: "https://assets.coingecko.com/coins/images/25244/large/Optimism.png",
+  SUI: "https://assets.coingecko.com/coins/images/26375/large/sui_asset.jpeg",
+  SEI: "https://assets.coingecko.com/coins/images/28205/large/Sei_Logo_-_Transparent.png",
+  APT: "https://assets.coingecko.com/coins/images/26455/large/aptos_round.png",
+  INJ: "https://assets.coingecko.com/coins/images/12882/large/Secondary_Symbol.png",
+  FET: "https://assets.coingecko.com/coins/images/5681/large/ASI.png",
+  RENDER: "https://assets.coingecko.com/coins/images/11636/large/rndr.png",
+  NEAR: "https://assets.coingecko.com/coins/images/10365/large/near.jpg",
+  TIA: "https://assets.coingecko.com/coins/images/31967/large/tia.jpg",
+  PYTH: "https://assets.coingecko.com/coins/images/31924/large/pyth.png",
+  WLD: "https://assets.coingecko.com/coins/images/31069/large/worldcoin.jpeg"
+};
+
+function sym(v) {
+  return String(v || "").replace("/USDT", "").replace("USDT", "").toUpperCase();
+}
+
+function money(v) {
+  const n = Number(v || 0);
+  if (n >= 10000) return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (n >= 100) return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  if (n >= 1) return n.toFixed(4);
+  return n.toFixed(6);
+}
+
+function change(entry, target) {
+  const e = Number(entry || 0);
+  const t = Number(target || 0);
+  if (!e || !t) return "—";
+  const x = ((t - e) / e) * 100;
+  return `${x >= 0 ? "+" : ""}${x.toFixed(2)}%`;
+}
+
+function timeAgo(ts) {
+  if (!ts) return "—";
+  const m = Math.max(0, Math.floor((Date.now() - Number(ts)) / 60000));
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  if (d) return `${d}d ago`;
+  if (h) return `${h}h ago`;
+  return `${m}m ago`;
+}
+
+function hitCount(status) {
+  return { active: 0, stopped: 0, tp1: 1, tp2: 2, tp3: 3, tp4: 4 }[status] || 0;
+}
+
+function statusLabel(status) {
+  return {
+    active: "Live",
+    stopped: "Closed",
+    tp1: "Target 1",
+    tp2: "Target 2",
+    tp3: "Target 3",
+    tp4: "Completed",
+  }[status] || "Live";
+}
+
+function CoinLogo({ symbol, logos }) {
+  const s = sym(symbol);
+  const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const sources = [
+    logos?.[s],
+    DEFAULT_LOGOS[s],
+    `https://assets.coincap.io/assets/icons/${s.toLowerCase()}@2x.png`,
+    `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${s.toLowerCase()}.png`,
+    `https://raw.githubusercontent.com/atomiclabs/cryptocurrency-icons/master/svg/color/${s.toLowerCase()}.svg`,
+  ].filter(Boolean);
+
+  useEffect(() => {
+    setIndex(0);
+    setFailed(false);
+  }, [s, logos]);
+
+  if (failed || sources.length === 0) {
+    return <div className="coinFallback">{s.slice(0, 3)}</div>;
+  }
+
+  return (
+    <img
+      className="coinLogo"
+      src={sources[index]}
+      alt={s}
+      onError={() => index < sources.length - 1 ? setIndex(index + 1) : setFailed(true)}
+    />
+  );
+}
+
+function Landing({ onLogin, theme, toggleTheme }) {
+  return (
+    <div className={`landing ${theme === "light" ? "lightMode" : ""}`}>
+      <nav className="nav">
+        <div className="brand">
+          <div className="bolt">⚡</div>
+          <div>
+            <b>SHAABAN SIGNAL PRO</b>
+            <span>VIP MEMBERS AREA</span>
+          </div>
+        </div>
+        <div className="navActions"><button className="ghostBtn" onClick={toggleTheme}>{theme === "light" ? "Dark" : "Light"}</button><button onClick={onLogin}>Login</button></div>
+      </nav>
+
+      <main className="landingMain">
+        <section className="landingCopy">
+          <span className="eyebrow">● VIP SIGNALS ONLY</span>
+          <h1>A premium signal room built for VIP traders.</h1>
+          <p>Follow VIP opportunities with a polished dashboard, live alerts, target tracking, and clean risk visibility — no copy trading, no auto execution.</p>
+          <div className="landingBtns">
+            <button onClick={onLogin}>Enter VIP Dashboard</button>
+            <a href="https://t.me/signal252" target="_blank" rel="noreferrer">Join Telegram</a>
+          </div>
+          <div className="trustStrip"><span>Quality Checked</span><span>Live Target Updates</span><span>Mobile Ready</span></div>
+          <div className="landingStats">
+            <div><b>24/7</b><span>Signal Tracking</span></div>
+            <div><b>VIP</b><span>Member Access</span></div>
+            <div><b>Live</b><span>Target Updates</span></div>
+          </div>
+        </section>
+
+        <section className="phonePreview premiumPreview">
+          <div className="previewGlow" />
+          <div className="previewHeader">
+            <span>SHAABAN PRO LIVE</span>
+            <b>Selective Mode</b>
+          </div>
+
+          <div className="previewHeroCard">
+            <div>
+              <small>Approved Signal</small>
+              <strong>ONDO / USDT</strong>
+            </div>
+            <em>Live</em>
+          </div>
+
+          <div className="previewLevels">
+            <div><span>Entry</span><b>$0.2698</b></div>
+            <div><span>Next Target</span><b>$0.2833</b></div>
+            <div><span>Score</span><b>9.4</b></div>
+          </div>
+
+          <div className="previewProgress">
+            <i className="on">1</i><i>2</i><i>3</i><i>4</i>
+          </div>
+
+          <div className="previewMiniList">
+            <div><span>🎯 Target 1</span><b>+5.08%</b></div>
+            <div><span>🛡️ Risk Managed</span><b>Low</b></div>
+            <div><span>⚡ Live Alerts</span><b>On</b></div>
+          </div>
+        </section>
+      </main>
+
+      <section className="howItWorks">
+        <div><i>1</i><b>Signal detected</b><span>Market is scanned for clean opportunities.</span></div>
+        <div><i>2</i><b>Quality checked</b><span>Only clean VIP signals appear in the dashboard.</span></div>
+        <div><i>3</i><b>Members track live</b><span>Targets, status, and alerts update automatically.</span></div>
+      </section>
+
+      <section className="proFeatures">
+        <div><b>Smart Entries</b><span>Quality checked setups only.</span></div>
+        <div><b>Dynamic Targets</b><span>Targets and progress shown clearly.</span></div>
+        <div><b>Quality Checked</b><span>No signal appears before approval.</span></div>
+      </section>
+    </div>
+  );
+}
+
+function Login({ onLogin, onBack, theme, toggleTheme }) {
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    setErr("");
+    setBusy(true);
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Login failed");
+      if (remember) localStorage.setItem("shaaban_user", JSON.stringify(data.user));
+      onLogin(data.user);
+    } catch (e) {
+      setErr(e.message || "Login failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
+      <div className="loginCard">
+        <button className="back" onClick={onBack}>← Back</button><button className="themeLogin" onClick={toggleTheme}>{theme === "light" ? "Dark" : "Light"}</button>
+        <div className="bigBolt">⚡</div>
+        <h1>SHAABAN SIGNAL PRO</h1>
+        <p>VIP / Admin secure access</p>
+        <input value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&submit()} placeholder="Username" />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&submit()} placeholder="Password" />
+        <label className="remember"><input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} /> Remember me</label>
+        {err && <div className="error">{err}</div>}
+        <button className="primary" onClick={submit} disabled={busy}>{busy ? "Opening..." : "Enter Dashboard"}</button>
+      </div>
+    </div>
+  );
+}
+
+function Toasts({ items }) {
+  return (
+    <div className="toastWrap">
+      {items.map((t) => <div className={`toast ${t.type || ""}`} key={t.id}><b>{t.icon}</b><span>{t.text}</span></div>)}
+    </div>
+  );
+}
+
+function Stat({ label, value, tone, onClick, active }) {
+  return (
+    <button className={`stat ${active ? "active" : ""}`} onClick={onClick}>
+      <span>{label}</span>
+      <b className={tone || ""}>{value}</b>
+    </button>
+  );
+}
+
+function Progress({ status }) {
+  const h = hitCount(status);
+  return <div className="progress">{[1,2,3,4].map(n => <i key={n} className={h >= n ? "done" : ""}>{n}</i>)}</div>;
+}
+
+function Tag({ text }) {
+  const t = String(text || "Confirmed");
+  const x = t.toLowerCase();
+  let cls = "tag";
+  if (x.includes("swing")) cls += " purple";
+  if (x.includes("liquidity")) cls += " cyan";
+  if (x.includes("strong")) cls += " green";
+  if (x.includes("pre")) cls += " orange";
+  return <span className={cls}>{t}</span>;
+}
+
+function Skeleton() {
+  return (
+    <div className="skeleton">
+      {[1,2,3,4,5].map(n => <div className="skRow" key={n}><i /><div><b /><span /></div><em /><em /></div>)}
+    </div>
+  );
+}
+
+function Timeline({ item }) {
+  const hit = hitCount(item.status);
+  const steps = ["Created", "Approved", "T1", "T2", "T3", "Done"];
+  return (
+    <div className="timeline">
+      {steps.map((s, i) => {
+        const done = i <= 1 || hit >= i - 1 || (item.status === "tp4" && i === 5);
+        return <div key={s} className={done ? "done" : ""}><i /><span>{s}</span></div>;
+      })}
+    </div>
+  );
+}
+
+function SignalRow({ signal, logos, compact, highlighted, onOpen }) {
+  const [expanded, setExpanded] = useState(false);
+  const s = sym(signal.symbol);
+  const targets = Array.isArray(signal.targets) ? signal.targets : [];
+  const hit = hitCount(signal.status);
+  const next = signal.status === "active" ? targets[0] : targets[Math.max(0, hit - 1)];
+  const confidence = Math.round(Number(signal.confidence || 0));
+
+  return (
+    <div className={`signal ${compact ? "compact" : ""} ${highlighted ? "highlight" : ""}`}>
+      <button className="signalMain" onClick={() => setExpanded(!expanded)}>
+        <div className="asset">
+          <CoinLogo symbol={s} logos={logos} />
+          <div>
+            <b>{s}</b>
+            <span>{signal.pair || `${s}/USDT`} · {timeAgo(signal.created_at)}</span><em className="rowQuality">{Number(signal.score || 0) >= 9 ? "Elite Signal" : Number(signal.score || 0) >= 8 ? "Strong Setup" : "Clean Setup"}</em>
+          </div>
+        </div>
+
+        <div className="cell hideMobile"><span>Entry</span><b>${money(signal.entry)}</b></div>
+        <div className="cell hideTablet"><span>{signal.status === "active" ? "Next" : "Reached"}</span><b>${money(next)}</b><em>{change(signal.entry, next)}</em></div>
+        <div className="cell hideTablet"><span>Score</span><b>{Number(signal.score || 0).toFixed(1)}</b></div>
+        <Progress status={signal.status} />
+        <div className="statusBox">
+          <strong className={`status ${signal.status}`}>{statusLabel(signal.status)}</strong>
+          <small>{expanded ? "Hide" : "Details"}</small>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="expanded">
+          <div className="expandedTop">
+            <Tag text={signal.type} />
+            <button onClick={() => onOpen(signal)}>Open full view</button>
+          </div>
+
+          <div className="quickGrid">
+            <div><span>Stop Loss</span><b className="red">${money(signal.sl)}</b><em>{change(signal.entry, signal.sl)}</em></div>
+            <div><span>Confidence</span><b>{confidence}%</b><div className="bar"><i style={{width:`${confidence}%`}} /></div></div>
+            <div><span>Setup</span><b>{signal.type || "Confirmed"}</b></div>
+          </div>
+
+          <div className="targetGrid">
+            {targets.map((tp, i) => (
+              <div className={hit > i ? "target done" : "target"} key={i}>
+                <span>Target {i + 1}</span>
+                <b>${money(tp)}</b>
+                <em>{change(signal.entry, tp)}</em>
+              </div>
+            ))}
+          </div>
+
+          <Timeline item={signal} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SignalModal({ signal, logos, onClose }) {
+  if (!signal) return null;
+  const s = sym(signal.symbol);
+  const targets = Array.isArray(signal.targets) ? signal.targets : [];
+  const hit = hitCount(signal.status);
+  const score = Number(signal.score || 0);
+  const conf = Math.round(Number(signal.confidence || 0));
+
+  return (
+    <div className="modalShade" onClick={onClose}>
+      <div className="modal" onClick={(e)=>e.stopPropagation()}>
+        <div className="modalHead">
+          <div className="asset big">
+            <CoinLogo symbol={s} logos={logos} />
+            <div>
+              <b>{s}</b>
+              <span>{signal.pair || `${s}/USDT`} · {statusLabel(signal.status)}</span>
+            </div>
+          </div>
+          <button onClick={onClose}>×</button>
+        </div>
+
+        <div className="modalSubline"><span>VIP signal tracking</span><b>{statusLabel(signal.status)}</b></div>
+        <Tag text={signal.type} />
+
+        <div className="qualityPanel">
+          <div><span>Signal Quality</span><b>{score >= 9 ? "Elite" : score >= 8 ? "Strong" : "Balanced"}</b></div>
+          <div><span>Risk Level</span><b>{Math.abs(Number(change(signal.entry, signal.sl).replace("%",""))) <= 3 ? "Low" : "Managed"}</b></div>
+          <div><span>Target Progress</span><b>{hit}/4</b></div>
+          <div><span>Trade Age</span><b>{timeAgo(signal.created_at)}</b></div>
+        </div>
+
+        <div className="modalGrid">
+          <div><span>Entry</span><b>${money(signal.entry)}</b></div>
+          <div><span>Stop Loss</span><b className="red">${money(signal.sl)}</b><em>{change(signal.entry, signal.sl)}</em></div>
+          <div><span>Risk</span><b className="red">{change(signal.entry, signal.sl)}</b></div>
+          <div><span>Age</span><b>{timeAgo(signal.created_at)}</b></div>
+        </div>
+
+        <div className="meters">
+          <div><span>Score</span><b>{score.toFixed(1)}/10</b><div className="bar"><i style={{width:`${Math.min(100, score*10)}%`}} /></div></div>
+          <div><span>Confidence</span><b>{conf}%</b><div className="bar"><i style={{width:`${Math.min(100, conf)}%`}} /></div></div>
+        </div>
+
+        <h3>Targets</h3>
+        <div className="targetGrid">
+          {targets.map((tp, i) => (
+            <div className={hit > i ? "target done" : "target"} key={i}>
+              <span>Target {i + 1}</span>
+              <b>${money(tp)}</b>
+              <em>{change(signal.entry, tp)}</em>
+            </div>
+          ))}
+        </div>
+
+        <h3>Tracking Timeline</h3>
+        <Timeline item={signal} />
+
+        <div className="note">Tracking only. </div>
+      </div>
+    </div>
+  );
+}
+
+function Notifications({ open, items, onClose, onClear }) {
+  if (!open) return null;
+  return (
+    <div className="drawerShade" onClick={onClose}>
+      <aside className="drawer" onClick={(e)=>e.stopPropagation()}>
+        <div className="drawerHead"><h3>Notifications</h3><button onClick={onClose}>×</button></div>
+        <button className="clear" onClick={onClear}>Clear all</button>
+        {items.length === 0 ? <div className="empty small">No notifications yet.</div> :
+          <div className="notifList">{items.map(x => <div className={`notif ${x.type || ""}`} key={x.id}><b>{x.icon}</b><div><strong>{x.text}</strong><span>{x.time}</span></div></div>)}</div>
+        }
+      </aside>
+    </div>
+  );
+}
+
+function Activity({ items }) {
+  return (
+    <section className="activity">
+      <div className="sectionHead"><h3>Live Activity</h3><span>Latest updates</span></div>
+      {items.length === 0 ? <div className="empty small">Activity will appear here when signals update.</div> :
+        items.slice(0, 6).map(x => <div className="activityItem" key={x.id}><b>{x.icon}</b><span>{x.text}</span><em>{x.time}</em></div>)
+      }
+    </section>
+  );
+}
+
+function StatusPage({ api, sse, last }) {
+  return (
+    <section className="centerPage">
+      <div className="panel">
+        <h2>Service Status</h2>
+        <p>Your signal dashboard connection status.</p>
+        <div className="statusGrid">
+          <div><span>Service</span><b className="greenText">Online</b></div>
+          <div><span>Connection</span><b className={api ? "greenText" : "goldText"}>{api ? "Online" : "Checking"}</b></div>
+          <div><span>Updates</span><b className={sse ? "greenText" : "goldText"}>{sse ? "Connected" : "Updating"}</b></div>
+          <div><span>Last Update</span><b>{last || "—"}</b></div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EmptyState({ filter }) {
+  return (
+    <div className="empty rich">
+      <b>📭</b>
+      <span>{filter === "active" ? "No active trades right now. SHAABAN bot is scanning for a clean setup." : "No signals found in this section."}</span>
+    </div>
+  );
+}
+
+
+function Welcome({ user, onContinue }) {
+  useEffect(() => {
+    const t = setTimeout(onContinue, 1800);
+    return () => clearTimeout(t);
+  }, [onContinue]);
+
+  return (
+    <div className="welcomeScreen">
+      <div className="welcomeCard">
+        <div className="welcomeBolt">⚡</div>
+        <span>Welcome back</span>
+        <h1>{user?.name || "VIP Trader"}</h1>
+        <p>SHAABAN SIGNAL PRO is loading your VIP signals dashboard.</p>
+        <div className="welcomeLoader"><i /></div>
+        <button onClick={onContinue}>Enter Now</button>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ user, onLogout, theme, toggleTheme }) {
+  const [signals, setSignals] = useState([]);
+  const [filter, setFilter] = useState("active");
+  const [tab, setTab] = useState("board");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [compact, setCompact] = useState(false);
+  const [logos, setLogos] = useState({});
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [highlighted, setHighlighted] = useState(new Set());
+  const [toasts, setToasts] = useState([]);
+  const [notifs, setNotifs] = useState([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [apiOnline, setApiOnline] = useState(false);
+  const [sseOnline, setSseOnline] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState("");
+  const [installPrompt, setInstallPrompt] = useState(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("shaaban_ultra_compact");
+      if (saved) setCompact(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem("shaaban_ultra_compact", JSON.stringify(compact)); } catch {}
+  }, [compact]);
+
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function installApp() {
+    if (!installPrompt) {
+      addNotice("Install option will appear when your browser allows it.", "info", "📱");
+      return;
+    }
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+  }
+
+  const addNotice = useCallback((text, type="info", icon="📡") => {
+    const item = { id: Date.now() + Math.random(), text, type, icon, time: new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) };
+    setToasts(p => [...p, item]);
+    setNotifs(p => [item, ...p].slice(0, 60));
+    setTimeout(() => setToasts(p => p.filter(x => x.id !== item.id)), 4200);
+  }, []);
+
+  const highlight = useCallback((id) => {
+    if (!id) return;
+    setHighlighted(p => new Set([...p, id]));
+    setTimeout(() => setHighlighted(p => {
+      const s = new Set(p);
+      s.delete(id);
+      return s;
+    }), 7500);
+  }, []);
+
+  const load = useCallback(async () => {
+    try {
+      setErr("");
+      const res = await fetch(`${Connection_URL}/api/signals`);
+      if (!res.ok) throw new Error("Connection error");
+      const data = await res.json();
+      setSignals(data);
+      setApiOnline(true);
+      setLastUpdate(new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}));
+    } catch {
+      setErr("Cannot load signals. Check Connection connection.");
+      setApiOnline(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    fetch("/logos.json").then(r => r.ok ? r.json() : {}).then(d => setLogos(d || {})).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const es = new EventSource(`${Connection_URL}/api/events`);
+    es.onopen = () => setSseOnline(true);
+    es.onerror = () => setSseOnline(false);
+
+    es.addEventListener("new_signal", (e) => {
+      try {
+        const d = JSON.parse(e.data || "{}");
+        addNotice(`New VIP signal: ${sym(d.symbol)}`, "new", "⚡");
+        highlight(d.id);
+      } catch {}
+      load();
+    });
+
+    es.addEventListener("status_update", (e) => {
+      try {
+        const d = JSON.parse(e.data || "{}");
+        const isTarget = String(d.status || "").startsWith("tp");
+        addNotice(`${sym(d.symbol)} ${isTarget ? "reached target" : "closed"}`, isTarget ? "target" : "closed", isTarget ? "🎯" : "🛑");
+        highlight(d.id);
+      } catch {}
+      load();
+    });
+
+    return () => es.close();
+  }, [load, addNotice, highlight]);
+
+  const stats = useMemo(() => {
+    const active = signals.filter(x => x.status === "active").length;
+    const hit = signals.filter(x => ["tp1","tp2","tp3","tp4"].includes(x.status)).length;
+    const closed = signals.filter(x => x.status === "stopped").length;
+    const today = signals.filter(x => {
+      const t = Number(x.created_at || 0);
+      return t && Date.now() - t < 24 * 60 * 60 * 1000;
+    }).length;
+    return { active, hit, closed, today, total: signals.length };
+  }, [signals]);
+
+  const market = useMemo(() => {
+    if (stats.active >= 6) return { icon:"🟢", title:"Active Market", text:"Multiple live approved opportunities." };
+    if (stats.active >= 1) return { icon:"🟡", title:"Selective Market", text:"Clean approved setups are live." };
+    return { icon:"🔵", title:"Waiting Mode", text:"Waiting for a clean approved setup." };
+  }, [stats.active]);
+
+  const list = useMemo(() => {
+    let arr = [...signals];
+
+    if (filter === "active") arr = arr.filter(x => x.status === "active");
+    if (filter === "hit") arr = arr.filter(x => ["tp1","tp2","tp3","tp4"].includes(x.status));
+    if (filter === "closed") arr = arr.filter(x => x.status === "stopped");
+
+    if (search.trim()) {
+      const q = search.trim().toUpperCase();
+      arr = arr.filter(x => sym(x.symbol).includes(q));
+    }
+
+    arr.sort((a,b) => {
+      if (sort === "score") return Number(b.score || 0) - Number(a.score || 0);
+      if (sort === "confidence") return Number(b.confidence || 0) - Number(a.confidence || 0);
+      if (sort === "oldest") return Number(a.created_at || 0) - Number(b.created_at || 0);
+      return Number(b.created_at || 0) - Number(a.created_at || 0);
+    });
+
+    return arr;
+  }, [signals, filter, search, sort]);
+
+  return (
+    <div className={`dashboard ${theme === "light" ? "lightMode" : ""}`}>
+      <Toasts items={toasts} />
+      <Notifications open={drawerOpen} items={notifs} onClose={() => setDrawerOpen(false)} onClear={() => setNotifs([])} />
+      <SignalModal signal={selected} logos={logos} onClose={() => setSelected(null)} />
+
+      <header className="topbar">
+        <div className="brand">
+          <div className="bolt">⚡</div>
+          <div><b>SHAABAN SIGNAL PRO</b><span>VIP Signals Dashboard</span></div>
+        </div>
+
+        <div className="topActions">
+          <button className="installBtn" onClick={installApp}>📱 Install</button>
+          <button className="themeToggle" onClick={toggleTheme}>{theme === "light" ? "🌙 Dark" : "☀️ Light"}</button>
+          <button className="bell" onClick={() => setDrawerOpen(true)}>🔔 {notifs.length}</button>
+          <span>{user?.name || "Trader"} · {user?.role || "Member"}</span>
+          <button onClick={load}>Refresh</button>
+          <button onClick={() => { localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
+        </div>
+      </header>
+
+      <main className="container">
+        {tab === "board" && (
+          <>
+            <section className="marketBanner"><b>{market.icon} {market.title}</b><span>{market.text}</span></section>
+
+            <section className="hero proHero">
+              <div className="proRibbon">SHAABAN SIGNAL PRO · VIP MEMBER AREA</div>
+              <div>
+                <span className="eyebrow">● LIVE APPROVED SIGNALS</span>
+                <h1>VIP Signals Dashboard</h1>
+                <p>VIP Signals Only • Risk Managed • Updates</p>
+                <div className="heroChips"><span>Quality Checked</span><span>Dynamic Targets</span><span>VIP Tracking</span></div>
+              </div>
+              <div className="heroCard"><span>Today</span><b>{stats.today}</b><em>approved signals</em></div>
+            </section>
+
+            <section className="stats">
+              <Stat label="Open Trades" value={stats.active} tone="blueText" active={filter === "active"} onClick={() => setFilter("active")} />
+              <Stat label="Targets Hit" value={stats.hit} tone="greenText" active={filter === "hit"} onClick={() => setFilter("hit")} />
+              <Stat label="Closed / SL" value={stats.closed} tone="redText" active={filter === "closed"} onClick={() => setFilter("closed")} />
+              <Stat label="Total Signals" value={stats.total} tone="goldText" active={filter === "all"} onClick={() => setFilter("all")} />
+            </section>
+
+            <section className="controls">
+              <div className="tabs">
+                <button className={filter==="active" ? "on" : ""} onClick={() => setFilter("active")}>Open</button>
+                <button className={filter==="all" ? "on" : ""} onClick={() => setFilter("all")}>All</button>
+                <button className={filter==="hit" ? "on" : ""} onClick={() => setFilter("hit")}>Targets Hit</button>
+                <button className={filter==="closed" ? "on" : ""} onClick={() => setFilter("closed")}>Closed</button>
+              </div>
+              <div className="tools">
+                <input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search coin..." />
+                <select value={sort} onChange={(e)=>setSort(e.target.value)}>
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="score">Best Score</option>
+                  <option value="confidence">Confidence</option>
+                </select>
+                <button className={compact ? "on" : ""} onClick={() => setCompact(!compact)}>{compact ? "Comfort" : "Compact"}</button>
+              </div>
+            </section>
+
+            {err && <div className="error">{err}</div>}
+
+            <section className="boardInfo"><span>Live board updates automatically</span><b>Tracking approved signals only</b></section>
+
+            <section className="labels">
+              <span>Asset</span><span className="hideMobile">Entry</span><span className="hideTablet">Target</span><span className="hideTablet">Score</span><span>Targets</span><span>Status</span>
+            </section>
+
+            <section className="signals">
+              {loading ? <Skeleton /> :
+                list.length === 0 ? <EmptyState filter={filter} /> :
+                list.map(signal => <SignalRow key={signal.id} signal={signal} logos={logos} compact={compact} highlighted={highlighted.has(signal.id)} onOpen={setSelected} />)
+              }
+            </section>
+
+            <Activity items={notifs} />
+          </>
+        )}
+
+        {tab === "alerts" && (
+          <section className="centerPage">
+            <div className="panel wide">
+              <h2>Alert Center</h2>
+              <p>All updates received during your session.</p>
+              {notifs.length === 0 ? <div className="empty small">No alerts yet.</div> :
+                <div className="notifList embedded">{notifs.map(x => <div className={`notif ${x.type || ""}`} key={x.id}><b>{x.icon}</b><div><strong>{x.text}</strong><span>{x.time}</span></div></div>)}</div>
+              }
+            </div>
+          </section>
+        )}
+
+        {tab === "profile" && (
+          <section className="centerPage">
+            <div className="panel">
+              <div className="avatar">{(user?.name || "S")[0]}</div>
+              <h2>{user?.name || "Trader"}</h2>
+              <p>{user?.role || "Member"}</p>
+              <div className="profileInfo">
+                <div><span>Membership</span><b>VIP</b></div>
+                <div><span>Access</span><b className="greenText">Active</b></div>
+                <div><span>Version</span><b>PRO UI</b></div>
+                <div><span>Last Update</span><b>{lastUpdate || "—"}</b></div>
+              </div>
+              <div className="statusGrid">
+                <div><span>Total</span><b>{stats.total}</b></div>
+                <div><span>Open</span><b>{stats.active}</b></div>
+                <div><span>Connection</span><b className={apiOnline ? "greenText" : "goldText"}>{apiOnline ? "Live" : "Check"}</b></div>
+                <div><span>Access</span><b className="greenText">Active</b></div>
+              </div>
+              <button className="primary" onClick={() => { localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
+            </div>
+          </section>
+        )}
+      </main>
+
+      <nav className="bottomNav">
+        <button className={tab==="board" ? "on" : ""} onClick={() => setTab("board")}>Board</button>
+        <button className={tab==="alerts" ? "on" : ""} onClick={() => setTab("alerts")}>Alerts</button>
+        <button className={tab==="profile" ? "on" : ""} onClick={() => setTab("profile")}>Profile</button>
+      </nav>
+    </div>
+  );
+}
+
+export default function App() {
+  const [screen, setScreen] = useState("landing");
+  const [theme, setTheme] = useState(() => localStorage.getItem("shaaban_theme_mode") || "dark");
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("shaaban_user") || "null"); }
+    catch { return null; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem("shaaban_theme_mode", theme); } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => t === "light" ? "dark" : "light");
+
+
+  if (user && showWelcome) return <Welcome user={user} onContinue={() => setShowWelcome(false)} />;
+  if (user) return <Dashboard user={user} theme={theme} toggleTheme={toggleTheme} onLogout={() => { setUser(null); setScreen("landing"); }} />;
+  if (screen === "login") return <Login onLogin={(u) => { setUser(u); setShowWelcome(true); }} theme={theme} toggleTheme={toggleTheme} onBack={() => setScreen("landing")} />;
+  return <Landing theme={theme} toggleTheme={toggleTheme} onLogin={() => setScreen("login")} />;
+}
+

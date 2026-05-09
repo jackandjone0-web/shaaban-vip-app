@@ -1,0 +1,21 @@
+{
+  "name": "SHAABAN SIGNAL PRO",
+  "short_name": "SHAABAN PRO",
+  "description": "VIP crypto signals dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070a12",
+  "theme_color": "#f59e0b",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
