@@ -303,3 +303,65 @@
 .bottomNav{grid-template-columns:repeat(3,1fr)}
 .statusPage{display:none!important}
 .adminBox{display:none!important}
+
+/* Secure Auth UI additions */
+.authSwitch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.authSwitch button,.userTabs button,.userActions button{
+  border:1px solid rgba(148,163,184,.18);
+  background:#111827;
+  color:#cbd5e1;
+  border-radius:12px;
+  padding:9px 10px;
+}
+.authSwitch button.on,.userTabs button.on{
+  background:var(--gold);
+  border-color:var(--gold);
+  color:#111827;
+  font-weight:900;
+}
+.approvalCard p{line-height:1.5}
+.approvalNote{
+  margin-top:10px;
+  border:1px solid rgba(245,158,11,.18);
+  background:rgba(245,158,11,.08);
+  color:var(--gold2);
+  border-radius:14px;
+  padding:10px;
+  font-size:13px;
+}
+.adminUsersPanel{text-align:left}
+.adminUsersPanel h2,.adminUsersPanel p{text-align:center}
+.userTabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0}
+.adminMsg{
+  border:1px solid rgba(245,158,11,.22);
+  background:rgba(245,158,11,.08);
+  color:var(--gold2);
+  border-radius:14px;
+  padding:10px;
+  margin:10px 0;
+  text-align:center;
+}
+.usersList{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.userRow{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  border:1px solid rgba(148,163,184,.12);
+  background:rgba(2,6,23,.35);
+  border-radius:16px;
+  padding:12px;
+}
+.userRow b{display:block}
+.userRow span,.userRow em{display:block;color:var(--muted);font-size:12px;margin-top:3px;font-style:normal}
+.userActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.userActions button:first-child{background:#22c55e;color:#052e16;border-color:#22c55e;font-weight:900}
+.userActions button:nth-child(2){background:#fb7185;color:#450a0a;border-color:#fb7185;font-weight:900}
+@media(max-width:620px){
+  .bottomNav{grid-template-columns:repeat(5,1fr)}
+  .userRow{align-items:flex-start;flex-direction:column}
+  .userActions{justify-content:flex-start}
+}
+.lightMode .authSwitch button,.lightMode .userTabs button,.lightMode .userActions button{background:#fff;color:#0f172a}
+.lightMode .userRow{background:rgba(255,255,255,.82)}
+
