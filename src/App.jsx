@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-const Connection_URL = import.meta.env.VITE_Connection_URL || "http://146.190.239.21:5001";
+const Connection_URL = "https://api.shaabansignals.online";
 
 const DEFAULT_LOGOS = {
   BTC: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
