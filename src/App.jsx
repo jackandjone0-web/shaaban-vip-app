@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-const API_URL = "https://api.shaabansignals.online";
+const Connection_URL = "https://api.shaabansignals.online";
 
 const DEFAULT_LOGOS = {
   BTC: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
@@ -123,14 +123,14 @@ function Landing({ onLogin, theme, toggleTheme }) {
 
       <main className="landingMain">
         <section className="landingCopy">
-          <span className="eyebrow">● APPROVED SIGNALS ONLY</span>
+          <span className="eyebrow">● VIP SIGNALS ONLY</span>
           <h1>A premium signal room built for VIP traders.</h1>
-          <p>Follow approved opportunities with a polished dashboard, live alerts, target tracking, and clean risk visibility — no copy trading, no auto execution.</p>
+          <p>Follow VIP opportunities with a polished dashboard, live alerts, target tracking, and clean risk visibility — no copy trading, no auto execution.</p>
           <div className="landingBtns">
             <button onClick={onLogin}>Enter VIP Dashboard</button>
             <a href="https://t.me/signal252" target="_blank" rel="noreferrer">Join Telegram</a>
           </div>
-          <div className="trustStrip"><span>Manual Approval</span><span>Live Target Updates</span><span>Mobile Ready</span></div>
+          <div className="trustStrip"><span>Quality Checked</span><span>Live Target Updates</span><span>Mobile Ready</span></div>
           <div className="landingStats">
             <div><b>24/7</b><span>Signal Tracking</span></div>
             <div><b>VIP</b><span>Member Access</span></div>
@@ -172,34 +172,42 @@ function Landing({ onLogin, theme, toggleTheme }) {
       </main>
 
       <section className="howItWorks">
-        <div><i>1</i><b>Bot detects setup</b><span>Market is scanned for clean opportunities.</span></div>
-        <div><i>2</i><b>Admin approves</b><span>Only approved signals appear in the dashboard.</span></div>
+        <div><i>1</i><b>Signal detected</b><span>Market is scanned for clean opportunities.</span></div>
+        <div><i>2</i><b>Quality checked</b><span>Only clean VIP signals appear in the dashboard.</span></div>
         <div><i>3</i><b>Members track live</b><span>Targets, status, and alerts update automatically.</span></div>
       </section>
 
       <section className="proFeatures">
-        <div><b>Smart Entries</b><span>Approved setups only after filtering.</span></div>
+        <div><b>Smart Entries</b><span>Quality checked setups only.</span></div>
         <div><b>Dynamic Targets</b><span>Targets and progress shown clearly.</span></div>
-        <div><b>Manual Approval</b><span>No signal appears before approval.</span></div>
+        <div><b>Quality Checked</b><span>No signal appears before approval.</span></div>
       </section>
     </div>
   );
 }
 
 function Login({ onLogin, onBack, theme, toggleTheme }) {
+  const [mode, setMode] = useState("login");
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const [regName, setRegName] = useState("");
+  const [regUsername, setRegUsername] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regTelegram, setRegTelegram] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [pendingMessage, setPendingMessage] = useState("");
+
   async function submit() {
     setErr("");
     setBusy(true);
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        credentials: "include",
+      const res = await fetch(`${Connection_URL}/api/auth/login`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
@@ -214,18 +222,82 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
     }
   }
 
+  async function register() {
+    setErr("");
+    setBusy(true);
+    setPendingMessage("");
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/register`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: regName,
+          username: regUsername,
+          email: regEmail,
+          telegram: regTelegram,
+          password: regPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Registration failed");
+      setPendingMessage("Account created. Waiting for admin approval.");
+      setMode("pending");
+    } catch (e) {
+      setErr(e.message || "Registration failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (mode === "pending") {
+    return (
+      <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
+        <div className="loginCard approvalCard">
+          <button className="back" onClick={onBack}>← Back</button>
+          <div className="bigBolt">⏳</div>
+          <h1>Waiting for Approval</h1>
+          <p>{pendingMessage || "Your account is waiting for admin approval."}</p>
+          <div className="approvalNote">You will be able to login after your VIP access is activated.</div>
+          <button className="primary" onClick={() => setMode("login")}>Back to Login</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
       <div className="loginCard">
         <button className="back" onClick={onBack}>← Back</button><button className="themeLogin" onClick={toggleTheme}>{theme === "light" ? "Dark" : "Light"}</button>
         <div className="bigBolt">⚡</div>
         <h1>SHAABAN SIGNAL PRO</h1>
-        <p>Admin secure access</p>
-        <input value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&submit()} placeholder="Username" />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&submit()} placeholder="Password" />
-        <label className="remember"><input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} /> Remember me</label>
-        {err && <div className="error">{err}</div>}
-        <button className="primary" onClick={submit} disabled={busy}>{busy ? "Opening..." : "Enter Dashboard"}</button>
+        <p>{mode === "login" ? "VIP secure access" : "Create VIP account"}</p>
+
+        <div className="authSwitch">
+          <button className={mode === "login" ? "on" : ""} onClick={() => { setMode("login"); setErr(""); }}>Login</button>
+          <button className={mode === "register" ? "on" : ""} onClick={() => { setMode("register"); setErr(""); }}>Create Account</button>
+        </div>
+
+        {mode === "login" ? (
+          <>
+            <input value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&submit()} placeholder="Username" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&submit()} placeholder="Password" />
+            <label className="remember"><input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} /> Remember me</label>
+            {err && <div className="error">{err}</div>}
+            <button className="primary" onClick={submit} disabled={busy}>{busy ? "Opening..." : "Enter Dashboard"}</button>
+          </>
+        ) : (
+          <>
+            <input value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="Full name" />
+            <input value={regUsername} onChange={(e) => setRegUsername(e.target.value)} placeholder="Username" />
+            <input value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="Email optional" />
+            <input value={regTelegram} onChange={(e) => setRegTelegram(e.target.value)} placeholder="Telegram username optional" />
+            <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Password, min 8 characters" />
+            {err && <div className="error">{err}</div>}
+            <button className="primary" onClick={register} disabled={busy}>{busy ? "Creating..." : "Create Account"}</button>
+            <div className="approvalNote">New accounts require admin approval before access.</div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -366,7 +438,7 @@ function SignalModal({ signal, logos, onClose }) {
           <button onClick={onClose}>×</button>
         </div>
 
-        <div className="modalSubline"><span>Approved trade tracking</span><b>{statusLabel(signal.status)}</b></div>
+        <div className="modalSubline"><span>VIP signal tracking</span><b>{statusLabel(signal.status)}</b></div>
         <Tag text={signal.type} />
 
         <div className="qualityPanel">
@@ -402,7 +474,7 @@ function SignalModal({ signal, logos, onClose }) {
         <h3>Tracking Timeline</h3>
         <Timeline item={signal} />
 
-        <div className="note">Tracking only. No copy trading or exchange execution is included.</div>
+        <div className="note">Tracking only. </div>
       </div>
     </div>
   );
@@ -438,20 +510,14 @@ function StatusPage({ api, sse, last }) {
   return (
     <section className="centerPage">
       <div className="panel">
-        <h2>System Status</h2>
-        <p>Live dashboard infrastructure health.</p>
+        <h2>Service Status</h2>
+        <p>Your signal dashboard connection status.</p>
         <div className="statusGrid">
-          <div><span>Bot</span><b className="greenText">Online</b></div>
-          <div><span>API</span><b className={api ? "greenText" : "goldText"}>{api ? "Online" : "Checking"}</b></div>
-          <div><span>Live Updates</span><b className={sse ? "greenText" : "goldText"}>{sse ? "Connected" : "Reconnecting"}</b></div>
+          <div><span>Service</span><b className="greenText">Online</b></div>
+          <div><span>Connection</span><b className={api ? "greenText" : "goldText"}>{api ? "Online" : "Checking"}</b></div>
+          <div><span>Updates</span><b className={sse ? "greenText" : "goldText"}>{sse ? "Connected" : "Updating"}</b></div>
           <div><span>Last Update</span><b>{last || "—"}</b></div>
         </div>
-        <div className="adminToolGrid">
-          <button><b>Signals DB</b><span>Review total and live signals</span></button>
-          <button><b>API Health</b><span>Check backend connection</span></button>
-          <button><b>Live Updates</b><span>Monitor SSE stream status</span></button>
-        </div>
-        <div className="adminWarning">Admin-only view. Do not share this panel with VIP users.</div>
       </div>
     </section>
   );
@@ -479,99 +545,13 @@ function Welcome({ user, onContinue }) {
         <div className="welcomeBolt">⚡</div>
         <span>Welcome back</span>
         <h1>{user?.name || "VIP Trader"}</h1>
-        <p>SHAABAN SIGNAL PRO is loading your approved trades dashboard.</p>
+        <p>SHAABAN SIGNAL PRO is loading your VIP signals dashboard.</p>
         <div className="welcomeLoader"><i /></div>
         <button onClick={onContinue}>Enter Now</button>
       </div>
     </div>
   );
 }
-
-
-function AdminUsersPanel() {
-  const [status, setStatus] = useState("pending");
-  const [users, setUsers] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  async function loadUsers(nextStatus = status) {
-    setBusy(true);
-    setMsg("");
-    try {
-      const url = nextStatus === "all" ? `${API_URL}/api/admin/users` : `${API_URL}/api/admin/users?status=${nextStatus}`;
-      const res = await fetch(url, { credentials: "include" });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Cannot load users");
-      setUsers(data.users || []);
-    } catch (e) {
-      setMsg(e.message || "Cannot load users");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function action(userId, actionName) {
-    setBusy(true);
-    setMsg("");
-    try {
-      const res = await fetch(`${API_URL}/api/admin/users/${userId}/${actionName}`, {
-        method: "POST",
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Action failed");
-      setMsg(`${actionName} done`);
-      await loadUsers(status);
-    } catch (e) {
-      setMsg(e.message || "Action failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  useEffect(() => { loadUsers("pending"); }, []);
-
-  return (
-    <section className="centerPage">
-      <div className="panel wide adminUsersPanel">
-        <h2>User Approvals</h2>
-        <p>Approve new VIP accounts or manage existing users.</p>
-
-        <div className="userTabs">
-          {["pending", "active", "rejected", "blocked", "all"].map(x => (
-            <button key={x} className={status === x ? "on" : ""} onClick={() => { setStatus(x); loadUsers(x); }}>
-              {x}
-            </button>
-          ))}
-        </div>
-
-        {msg && <div className="adminMsg">{msg}</div>}
-
-        {busy && <div className="empty small">Loading users...</div>}
-
-        {!busy && users.length === 0 && <div className="empty small">No users found.</div>}
-
-        <div className="usersList">
-          {users.map(u => (
-            <div className="userRow" key={u.id}>
-              <div>
-                <b>{u.name}</b>
-                <span>@{u.username} · {u.role} · {u.status}</span>
-                <em>{u.email || "No email"} {u.telegram ? `· ${u.telegram}` : ""}</em>
-              </div>
-              <div className="userActions">
-                {u.status === "pending" && <button onClick={() => action(u.id, "approve")}>Approve</button>}
-                {u.status === "pending" && <button onClick={() => action(u.id, "reject")}>Reject</button>}
-                {u.status !== "blocked" && u.role !== "ADMIN" && <button onClick={() => action(u.id, "block")}>Block</button>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 
 function Dashboard({ user, onLogout, theme, toggleTheme }) {
   const [signals, setSignals] = useState([]);
@@ -644,14 +624,14 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
   const load = useCallback(async () => {
     try {
       setErr("");
-      const res = await fetch(`${API_URL}/api/signals`, { credentials: "include" });
-      if (!res.ok) throw new Error("API error");
+      const res = await fetch(`${Connection_URL}/api/signals`, { credentials: "include" });
+      if (!res.ok) throw new Error("Connection error");
       const data = await res.json();
       setSignals(data);
       setApiOnline(true);
       setLastUpdate(new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}));
     } catch {
-      setErr("Cannot load signals. Check API connection.");
+      setErr("Cannot load signals. Check Connection connection.");
       setApiOnline(false);
     } finally {
       setLoading(false);
@@ -665,14 +645,14 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
   }, []);
 
   useEffect(() => {
-    const es = new EventSource(`${API_URL}/api/events`, { withCredentials: true });
+    const es = new EventSource(`${Connection_URL}/api/events`, { withCredentials: true });
     es.onopen = () => setSseOnline(true);
     es.onerror = () => setSseOnline(false);
 
     es.addEventListener("new_signal", (e) => {
       try {
         const d = JSON.parse(e.data || "{}");
-        addNotice(`New approved signal: ${sym(d.symbol)}`, "new", "⚡");
+        addNotice(`New VIP signal: ${sym(d.symbol)}`, "new", "⚡");
         highlight(d.id);
       } catch {}
       load();
@@ -730,8 +710,6 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
     return arr;
   }, [signals, filter, search, sort]);
 
-  const isAdmin = String(user?.role || "").toUpperCase() === "ADMIN";
-
   return (
     <div className={`dashboard ${theme === "light" ? "lightMode" : ""}`}>
       <Toasts items={toasts} />
@@ -741,7 +719,7 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
       <header className="topbar">
         <div className="brand">
           <div className="bolt">⚡</div>
-          <div><b>SHAABAN SIGNAL PRO</b><span>Admin Control Panel</span></div>
+          <div><b>SHAABAN SIGNAL PRO</b><span>VIP Signals Dashboard</span></div>
         </div>
 
         <div className="topActions">
@@ -750,7 +728,7 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
           <button className="bell" onClick={() => setDrawerOpen(true)}>🔔 {notifs.length}</button>
           <span>{user?.name || "Trader"} · {user?.role || "Member"}</span>
           <button onClick={load}>Refresh</button>
-          <button onClick={async () => { try { await fetch(`${API_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
+          <button onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
         </div>
       </header>
 
@@ -760,12 +738,12 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
             <section className="marketBanner"><b>{market.icon} {market.title}</b><span>{market.text}</span></section>
 
             <section className="hero proHero">
-              <div className="proRibbon">SHAABAN ADMIN PRO · SYSTEM CONTROL</div>
+              <div className="proRibbon">SHAABAN SIGNAL PRO · VIP MEMBER AREA</div>
               <div>
                 <span className="eyebrow">● LIVE APPROVED SIGNALS</span>
-                <h1>Admin Control Center</h1>
-                <p>Approved Trades Only • Risk Managed • Live Updates</p>
-                <div className="heroChips"><span>Manual Approval</span><span>Dynamic Targets</span><span>VIP Tracking</span></div>
+                <h1>VIP Signals Dashboard</h1>
+                <p>VIP Signals Only • Risk Managed • Updates</p>
+                <div className="heroChips"><span>Quality Checked</span><span>Dynamic Targets</span><span>VIP Tracking</span></div>
               </div>
               <div className="heroCard"><span>Today</span><b>{stats.today}</b><em>approved signals</em></div>
             </section>
@@ -827,10 +805,6 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
           </section>
         )}
 
-        {tab === "status" && <StatusPage api={apiOnline} sse={sseOnline} last={lastUpdate} />}
-
-        {tab === "users" && <AdminUsersPanel />}
-
         {tab === "profile" && (
           <section className="centerPage">
             <div className="panel">
@@ -846,22 +820,19 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
               <div className="statusGrid">
                 <div><span>Total</span><b>{stats.total}</b></div>
                 <div><span>Open</span><b>{stats.active}</b></div>
-                <div><span>API</span><b className={apiOnline ? "greenText" : "goldText"}>{apiOnline ? "Live" : "Check"}</b></div>
-                <div><span>Updates</span><b className={sseOnline ? "greenText" : "goldText"}>{sseOnline ? "On" : "Wait"}</b></div>
+                <div><span>Connection</span><b className={apiOnline ? "greenText" : "goldText"}>{apiOnline ? "Live" : "Check"}</b></div>
+                <div><span>Access</span><b className="greenText">Active</b></div>
               </div>
-              {isAdmin && <div className="adminBox"><b>Admin View</b><span>API: {apiOnline ? "Online" : "Checking"} · SSE: {sseOnline ? "Connected" : "Reconnecting"} · Last: {lastUpdate || "—"}</span></div>}
-              <button className="primary" onClick={async () => { try { await fetch(`${API_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
+              <button className="primary" onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
             </div>
           </section>
         )}
       </main>
 
       <nav className="bottomNav">
-        <button className={tab==="board" ? "on" : ""} onClick={() => setTab("board")}>Signals</button>
+        <button className={tab==="board" ? "on" : ""} onClick={() => setTab("board")}>Board</button>
         <button className={tab==="alerts" ? "on" : ""} onClick={() => setTab("alerts")}>Alerts</button>
-        <button className={tab==="status" ? "on" : ""} onClick={() => setTab("status")}>Status</button>
-        <button className={tab==="users" ? "on" : ""} onClick={() => setTab("users")}>Users</button>
-        <button className={tab==="profile" ? "on" : ""} onClick={() => setTab("profile")}>Admin</button>
+        <button className={tab==="profile" ? "on" : ""} onClick={() => setTab("profile")}>Profile</button>
       </nav>
     </div>
   );
@@ -883,7 +854,7 @@ export default function App() {
   const toggleTheme = () => setTheme((t) => t === "light" ? "dark" : "light");
 
   useEffect(() => {
-    fetch(`${API_URL}/api/auth/me`, { credentials: "include" })
+    fetch(`${Connection_URL}/api/auth/me`, { credentials: "include" })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d?.success && d.user) {
