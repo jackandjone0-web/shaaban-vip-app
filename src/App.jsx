@@ -95,6 +95,20 @@ function membershipLabel(user) {
   return "Free Preview";
 }
 
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
+function pushSupported() {
+  return typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+}
+
 function CoinLogo({ symbol, logos }) {
   const s = sym(symbol);
   const [index, setIndex] = useState(0);
@@ -730,6 +744,8 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [sseOnline, setSseOnline] = useState(false);
   const [lastUpdate, setLastUpdate] = useState("");
   const [installPrompt, setInstallPrompt] = useState(null);
+  const [pushInfo, setPushInfo] = useState({ supported: false, enabled: false, configured: false, permission: "default", subscriptions: 0 });
+  const [pushBusy, setPushBusy] = useState(false);
   const vipAccess = isVipUser(user);
   const adminAccess = isAdminUser(user);
 
@@ -762,6 +778,87 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     installPrompt.prompt();
     await installPrompt.userChoice;
     setInstallPrompt(null);
+  }
+
+
+  async function refreshPushInfo() {
+    const supported = pushSupported();
+    let enabled = false;
+    let configured = false;
+    let subscriptions = 0;
+    let permission = supported ? Notification.permission : "unsupported";
+    try {
+      const statusRes = await fetch(`${Connection_URL}/api/push/status`, { credentials: "include" });
+      if (statusRes.ok) {
+        const status = await statusRes.json();
+        configured = Boolean(status.web_push);
+        subscriptions = Number(status.subscriptions || 0);
+      }
+      if (supported) {
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        const sub = await reg.pushManager.getSubscription();
+        enabled = Boolean(sub) && permission === "granted";
+      }
+    } catch {
+      enabled = false;
+    }
+    setPushInfo({ supported, enabled, configured, permission, subscriptions });
+    return { supported, enabled, configured, permission, subscriptions };
+  }
+
+  async function enableNotifications() {
+    setPushBusy(true);
+    try {
+      if (!pushSupported()) throw new Error("This browser does not support push notifications.");
+      const keyRes = await fetch(`${Connection_URL}/api/push/vapid-public-key`, { credentials: "include" });
+      const keyData = await keyRes.json();
+      const publicKey = keyData.publicKey;
+      if (!publicKey) throw new Error("Push notifications are not configured on the server.");
+      let permission = Notification.permission;
+      if (permission !== "granted") permission = await Notification.requestPermission();
+      if (permission !== "granted") throw new Error("Notifications permission was not allowed.");
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+      }
+      const res = await fetch(`${Connection_URL}/api/push/subscribe`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sub),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || "Cannot register this device for notifications.");
+      addNotice("Notifications enabled on this device.", "target", "🔔");
+      await refreshPushInfo();
+    } catch (e) {
+      addNotice(e.message || "Cannot enable notifications.", "closed", "⚠️");
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function sendTestNotification() {
+    setPushBusy(true);
+    try {
+      const res = await fetch(`${Connection_URL}/api/push/test`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || "Test notification failed.");
+      addNotice("Test notification sent. Close the page and try again after enabling.", "target", "✅");
+      await refreshPushInfo();
+    } catch (e) {
+      addNotice(e.message || "Cannot send test notification.", "closed", "⚠️");
+    } finally {
+      setPushBusy(false);
+    }
   }
 
   const addNotice = useCallback((text, type="info", icon="📡") => {
@@ -799,6 +896,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { refreshPushInfo(); }, []);
   const makeFreePreview = useCallback(async (signal) => {
     if (!signal?.key) {
       addNotice("Signal key is missing.", "closed", "⚠️");
@@ -905,6 +1003,10 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
 
         <div className="topActions">
           <button className="installBtn" onClick={installApp}>📱 Install</button>
+          <button className={pushInfo.enabled ? "notifyEnabled" : "notifyBtn"} onClick={enableNotifications} disabled={pushBusy}>
+            {pushInfo.enabled ? "🔔 Notifications On" : "🔔 Enable Alerts"}
+          </button>
+          {pushInfo.enabled && <button className="notifyTestBtn" onClick={sendTestNotification} disabled={pushBusy}>Test</button>}
           <button className="themeToggle" onClick={toggleTheme}>{theme === "light" ? "🌙 Dark" : "☀️ Light"}</button>
           <button className="bell" onClick={() => setDrawerOpen(true)}>🔔 {notifs.length}</button>
           {!vipAccess && <button className="upgradeMini" onClick={() => setTab("subscribe")}>Upgrade</button>}
@@ -939,6 +1041,17 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
                 <button onClick={() => setTab("subscribe")}>Upgrade to VIP</button>
               </section>
             )}
+
+            <section className={pushInfo.enabled ? "pushBanner enabled" : "pushBanner"}>
+              <div>
+                <b>{pushInfo.enabled ? "🔔 Notifications enabled" : "🔔 Enable signal notifications"}</b>
+                <span>{pushInfo.enabled ? "This device is registered for approved signals and target alerts." : "Turn on alerts to receive signals and TP updates even when the page is closed."}</span>
+              </div>
+              <div className="pushBannerActions">
+                <button onClick={enableNotifications} disabled={pushBusy}>{pushInfo.enabled ? "Re-sync" : "Enable"}</button>
+                <button onClick={sendTestNotification} disabled={pushBusy || !pushInfo.enabled}>Test</button>
+              </div>
+            </section>
 
             <section className="stats">
               <Stat label="Open Trades" value={stats.active} tone="blueText" active={filter === "active"} onClick={() => setFilter("active")} />
