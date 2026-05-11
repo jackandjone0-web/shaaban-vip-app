@@ -76,6 +76,25 @@ function statusLabel(status) {
   }[status] || "Live";
 }
 
+function userRole(user) {
+  return String(user?.role || "FREE").toUpperCase();
+}
+
+function isVipUser(user) {
+  return Boolean(user?.is_vip) || ["VIP", "ADMIN"].includes(userRole(user));
+}
+
+function isAdminUser(user) {
+  return userRole(user) === "ADMIN";
+}
+
+function membershipLabel(user) {
+  const role = userRole(user);
+  if (role === "ADMIN") return "Admin";
+  if (role === "VIP") return "VIP Active";
+  return "Free Preview";
+}
+
 function CoinLogo({ symbol, logos }) {
   const s = sym(symbol);
   const [index, setIndex] = useState(0);
@@ -241,7 +260,12 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Registration failed");
-      setPendingMessage("Account created. Waiting for admin approval.");
+      if (data.user) {
+        localStorage.setItem("shaaban_user", JSON.stringify(data.user));
+        onLogin(data.user);
+        return;
+      }
+      setPendingMessage(data.message || "Account created. You can login now as Free Preview.");
       setMode("pending");
     } catch (e) {
       setErr(e.message || "Registration failed");
@@ -256,9 +280,9 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
         <div className="loginCard approvalCard">
           <button className="back" onClick={onBack}>← Back</button>
           <div className="bigBolt">⏳</div>
-          <h1>Waiting for Approval</h1>
-          <p>{pendingMessage || "Your account is waiting for admin approval."}</p>
-          <div className="approvalNote">You will be able to login after your VIP access is activated.</div>
+          <h1>Account Created</h1>
+          <p>{pendingMessage || "Your Free Preview account is ready."}</p>
+          <div className="approvalNote">Login to view the free preview signal. Upgrade to VIP to unlock all signals.</div>
           <button className="primary" onClick={() => setMode("login")}>Back to Login</button>
         </div>
       </div>
@@ -357,7 +381,7 @@ function Timeline({ item }) {
   );
 }
 
-function SignalRow({ signal, logos, compact, highlighted, onOpen }) {
+function SignalRow({ signal, logos, compact, highlighted, onOpen, isAdmin, onMakeFreePreview }) {
   const [expanded, setExpanded] = useState(false);
   const s = sym(signal.symbol);
   const targets = Array.isArray(signal.targets) ? signal.targets : [];
@@ -372,7 +396,7 @@ function SignalRow({ signal, logos, compact, highlighted, onOpen }) {
           <CoinLogo symbol={s} logos={logos} />
           <div>
             <b>{s}</b>
-            <span>{signal.pair || `${s}/USDT`} · {timeAgo(signal.created_at)}</span><em className="rowQuality">{Number(signal.score || 0) >= 9 ? "Elite Signal" : Number(signal.score || 0) >= 8 ? "Strong Setup" : "Clean Setup"}</em>
+            <span>{signal.pair || `${s}/USDT`} · {timeAgo(signal.created_at)}</span><em className="rowQuality">{Number(signal.score || 0) >= 9 ? "Elite Signal" : Number(signal.score || 0) >= 8 ? "Strong Setup" : "Clean Setup"}</em>{signal.is_free_preview && <em className="freePreviewPill">Free Preview</em>}
           </div>
         </div>
 
@@ -390,7 +414,11 @@ function SignalRow({ signal, logos, compact, highlighted, onOpen }) {
         <div className="expanded">
           <div className="expandedTop">
             <Tag text={signal.type} />
-            <button onClick={() => onOpen(signal)}>Open full view</button>
+            <div className="expandedActions">
+              {isAdmin && !signal.is_free_preview && <button onClick={() => onMakeFreePreview(signal)}>⭐ Make Free Preview</button>}
+              {signal.is_free_preview && <span className="tag green">👁️ Free Preview</span>}
+              <button onClick={() => onOpen(signal)}>Open full view</button>
+            </div>
           </div>
 
           <div className="quickGrid">
@@ -412,6 +440,34 @@ function SignalRow({ signal, logos, compact, highlighted, onOpen }) {
           <Timeline item={signal} />
         </div>
       )}
+    </div>
+  );
+}
+
+
+function LockedSignalRow({ signal, compact }) {
+  const age = timeAgo(signal.created_at);
+  return (
+    <div className={`signal lockedSignal ${compact ? "compact" : ""}`}>
+      <div className="signalMain lockedMain">
+        <div className="asset">
+          <div className="coinFallback">VIP</div>
+          <div>
+            <b>VIP Signal Locked</b>
+            <span>Approved setup · {age}</span>
+            <em className="rowQuality">Upgrade to unlock coin, entry, SL and targets</em>
+          </div>
+        </div>
+        <div className="cell hideMobile"><span>Entry</span><b>VIP Only</b></div>
+        <div className="cell hideTablet"><span>Targets</span><b>Locked</b><em>Full access required</em></div>
+        <div className="cell hideTablet"><span>Score</span><b>VIP</b></div>
+        <div className="progress lockedProgress"><i>🔒</i><i>🔒</i><i>🔒</i><i>🔒</i></div>
+        <div className="statusBox">
+          <strong className="status locked">VIP Only</strong>
+          <small>Subscribe to view</small>
+        </div>
+      </div>
+      <div className="lockedOverlayText">🔒 This signal is locked for VIP members</div>
     </div>
   );
 }
@@ -572,6 +628,8 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
   const [sseOnline, setSseOnline] = useState(false);
   const [lastUpdate, setLastUpdate] = useState("");
   const [installPrompt, setInstallPrompt] = useState(null);
+  const vipAccess = isVipUser(user);
+  const adminAccess = isAdminUser(user);
 
   useEffect(() => {
     try {
@@ -639,6 +697,27 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  const makeFreePreview = useCallback(async (signal) => {
+    if (!signal?.key) {
+      addNotice("Signal key is missing.", "closed", "⚠️");
+      return;
+    }
+    try {
+      const res = await fetch(`${Connection_URL}/api/admin/free-preview`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: signal.key }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to set free preview");
+      addNotice(`${sym(signal.symbol)} is now the Free Preview signal`, "target", "👁️");
+      load();
+    } catch (e) {
+      addNotice(e.message || "Cannot set free preview", "closed", "⚠️");
+    }
+  }, [addNotice, load]);
+
 
   useEffect(() => {
     fetch("/logos.json").then(r => r.ok ? r.json() : {}).then(d => setLogos(d || {})).catch(() => {});
@@ -719,14 +798,14 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
       <header className="topbar">
         <div className="brand">
           <div className="bolt">⚡</div>
-          <div><b>SHAABAN SIGNAL PRO</b><span>VIP Signals Dashboard</span></div>
+          <div><b>SHAABAN SIGNAL PRO</b><span>{vipAccess ? "VIP Signals Dashboard" : "Free Preview Dashboard"}</span></div>
         </div>
 
         <div className="topActions">
           <button className="installBtn" onClick={installApp}>📱 Install</button>
           <button className="themeToggle" onClick={toggleTheme}>{theme === "light" ? "🌙 Dark" : "☀️ Light"}</button>
           <button className="bell" onClick={() => setDrawerOpen(true)}>🔔 {notifs.length}</button>
-          <span>{user?.name || "Trader"} · {user?.role || "Member"}</span>
+          <span>{user?.name || "Trader"} · {membershipLabel(user)}</span>
           <button onClick={load}>Refresh</button>
           <button onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
         </div>
@@ -738,15 +817,25 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
             <section className="marketBanner"><b>{market.icon} {market.title}</b><span>{market.text}</span></section>
 
             <section className="hero proHero">
-              <div className="proRibbon">SHAABAN SIGNAL PRO · VIP MEMBER AREA</div>
+              <div className="proRibbon">SHAABAN SIGNAL PRO · {vipAccess ? "VIP MEMBER AREA" : "FREE PREVIEW"}</div>
               <div>
-                <span className="eyebrow">● LIVE APPROVED SIGNALS</span>
-                <h1>VIP Signals Dashboard</h1>
-                <p>VIP Signals Only • Risk Managed • Updates</p>
+                <span className="eyebrow">● {vipAccess ? "LIVE APPROVED SIGNALS" : "FREE PREVIEW SIGNAL"}</span>
+                <h1>{vipAccess ? "VIP Signals Dashboard" : "Free Preview Dashboard"}</h1>
+                <p>{vipAccess ? "VIP Signals Only • Risk Managed • Updates" : "View one selected signal. Upgrade to unlock all live trades."}</p>
                 <div className="heroChips"><span>Quality Checked</span><span>Dynamic Targets</span><span>VIP Tracking</span></div>
               </div>
               <div className="heroCard"><span>Today</span><b>{stats.today}</b><em>approved signals</em></div>
             </section>
+
+            {!vipAccess && (
+              <section className="upgradeBanner">
+                <div>
+                  <b>🔒 Unlock all SHAABAN VIP signals</b>
+                  <span>Free members can view one selected preview signal. VIP unlocks every coin, entry, SL, targets, and live alerts.</span>
+                </div>
+                <button onClick={() => setTab("profile")}>Upgrade to VIP</button>
+              </section>
+            )}
 
             <section className="stats">
               <Stat label="Open Trades" value={stats.active} tone="blueText" active={filter === "active"} onClick={() => setFilter("active")} />
@@ -785,7 +874,10 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
             <section className="signals">
               {loading ? <Skeleton /> :
                 list.length === 0 ? <EmptyState filter={filter} /> :
-                list.map(signal => <SignalRow key={signal.id} signal={signal} logos={logos} compact={compact} highlighted={highlighted.has(signal.id)} onOpen={setSelected} />)
+                list.map(signal => signal.locked
+                  ? <LockedSignalRow key={signal.id} signal={signal} compact={compact} />
+                  : <SignalRow key={signal.id} signal={signal} logos={logos} compact={compact} highlighted={highlighted.has(signal.id)} onOpen={setSelected} isAdmin={adminAccess} onMakeFreePreview={makeFreePreview} />
+                )
               }
             </section>
 
@@ -812,8 +904,8 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
               <h2>{user?.name || "Trader"}</h2>
               <p>{user?.role || "Member"}</p>
               <div className="profileInfo">
-                <div><span>Membership</span><b>VIP</b></div>
-                <div><span>Access</span><b className="greenText">Active</b></div>
+                <div><span>Membership</span><b>{membershipLabel(user)}</b></div>
+                <div><span>Access</span><b className={vipAccess ? "greenText" : "goldText"}>{vipAccess ? "Full" : "Preview"}</b></div>
                 <div><span>Version</span><b>PRO UI</b></div>
                 <div><span>Last Update</span><b>{lastUpdate || "—"}</b></div>
               </div>
@@ -821,8 +913,15 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
                 <div><span>Total</span><b>{stats.total}</b></div>
                 <div><span>Open</span><b>{stats.active}</b></div>
                 <div><span>Connection</span><b className={apiOnline ? "greenText" : "goldText"}>{apiOnline ? "Live" : "Check"}</b></div>
-                <div><span>Access</span><b className="greenText">Active</b></div>
+                <div><span>Access</span><b className={vipAccess ? "greenText" : "goldText"}>{vipAccess ? "Full" : "Preview"}</b></div>
               </div>
+              {!vipAccess && (
+                <div className="subscribeBox">
+                  <b>Upgrade to VIP</b>
+                  <span>Unlock all approved signals, targets, stop loss, live updates, and notifications.</span>
+                  <button className="primary" onClick={() => window.open("https://t.me/signal252", "_blank")}>Contact to Subscribe</button>
+                </div>
+              )}
               <button className="primary" onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
             </div>
           </section>
