@@ -314,12 +314,12 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
           <>
             <input value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="Full name" />
             <input value={regUsername} onChange={(e) => setRegUsername(e.target.value)} placeholder="Username" />
-            <input value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="Email optional" />
+            <input value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="Email" />
             <input value={regTelegram} onChange={(e) => setRegTelegram(e.target.value)} placeholder="Telegram username optional" />
             <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Password, min 8 characters" />
             {err && <div className="error">{err}</div>}
             <button className="primary" onClick={register} disabled={busy}>{busy ? "Creating..." : "Create Account"}</button>
-            <div className="approvalNote">New accounts require admin approval before access.</div>
+            <div className="approvalNote">Free account opens immediately. Upgrade to VIP to unlock all signals.</div>
           </>
         )}
       </div>
@@ -609,7 +609,109 @@ function Welcome({ user, onContinue }) {
   );
 }
 
-function Dashboard({ user, onLogout, theme, toggleTheme }) {
+
+function formatDate(ts) {
+  if (!ts) return "—";
+  try { return new Date(Number(ts)).toLocaleDateString(); } catch { return "—"; }
+}
+
+function SubscribePanel({ user, onUserUpdate }) {
+  const [plans, setPlans] = useState([]);
+  const [busyPlan, setBusyPlan] = useState("");
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const loadMe = useCallback(async () => {
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/me`, { credentials: "include" });
+      const data = await res.json();
+      if (res.ok && data.success && data.user) {
+        localStorage.setItem("shaaban_user", JSON.stringify(data.user));
+        onUserUpdate?.(data.user);
+        setMsg(data.user.is_vip ? "VIP access is active." : "Payment is still pending confirmation.");
+      }
+    } catch {}
+  }, [onUserUpdate]);
+
+  useEffect(() => {
+    fetch(`${Connection_URL}/api/subscription/plans`, { credentials: "include" })
+      .then(r => r.json())
+      .then(d => setPlans(d?.plans || []))
+      .catch(() => setErr("Cannot load subscription plans."));
+  }, []);
+
+  async function pay(planKey) {
+    setErr("");
+    setMsg("");
+    setBusyPlan(planKey);
+    try {
+      const res = await fetch(`${Connection_URL}/api/subscription/create-invoice`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planKey }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Cannot create payment invoice");
+      if (!data.invoice_url) throw new Error("NOWPayments invoice URL was not returned");
+      window.location.href = data.invoice_url;
+    } catch (e) {
+      setErr(e.message || "Payment error");
+    } finally {
+      setBusyPlan("");
+    }
+  }
+
+  const order = ["monthly", "quarterly", "six_months", "yearly"];
+  const sortedPlans = [...plans].sort((a,b) => order.indexOf(a.key) - order.indexOf(b.key));
+  const isVip = isVipUser(user);
+
+  return (
+    <section className="subscribePage">
+      <div className="subscribeHero">
+        <span className="eyebrow">● SHAABAN VIP ACCESS</span>
+        <h2>{isVip ? "Your VIP access is active" : "Unlock all approved signals"}</h2>
+        <p>{isVip ? `Active until: ${formatDate(user?.subscription_expires_at)}` : "Pay securely with crypto through NOWPayments. VIP unlocks every coin, entry, stop loss, targets, and live updates."}</p>
+        <button className="clear" onClick={loadMe}>Refresh Access</button>
+      </div>
+
+      {err && <div className="error">{err}</div>}
+      {msg && <div className="successBox">{msg}</div>}
+
+      <div className="planGrid">
+        {sortedPlans.map((p) => {
+          const monthly = p.days ? (Number(p.price_usd) / (Number(p.days) / 30)) : Number(p.price_usd);
+          const best = p.key === "yearly";
+          return (
+            <div className={`planCard ${best ? "best" : ""}`} key={p.key}>
+              {best && <em>Best Value</em>}
+              <h3>{p.label}</h3>
+              <strong>${Number(p.price_usd).toFixed(0)}</strong>
+              <span>{p.days} days access</span>
+              <small>≈ ${monthly.toFixed(1)} / month</small>
+              <ul>
+                <li>All VIP signals unlocked</li>
+                <li>Entry, SL, targets and status</li>
+                <li>Live target notifications</li>
+                <li>Free preview limits removed</li>
+              </ul>
+              <button className="primary" onClick={() => pay(p.key)} disabled={!!busyPlan}>
+                {busyPlan === p.key ? "Opening payment..." : "Pay with Crypto"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="subscribeNote">
+        <b>How it works</b>
+        <span>Choose a plan → pay with crypto → once blockchain confirmation reaches NOWPayments, your VIP access activates automatically. If it does not update instantly, use Refresh Access.</span>
+      </div>
+    </section>
+  );
+}
+
+function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [signals, setSignals] = useState([]);
   const [filter, setFilter] = useState("active");
   const [tab, setTab] = useState("board");
@@ -805,6 +907,7 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
           <button className="installBtn" onClick={installApp}>📱 Install</button>
           <button className="themeToggle" onClick={toggleTheme}>{theme === "light" ? "🌙 Dark" : "☀️ Light"}</button>
           <button className="bell" onClick={() => setDrawerOpen(true)}>🔔 {notifs.length}</button>
+          {!vipAccess && <button className="upgradeMini" onClick={() => setTab("subscribe")}>Upgrade</button>}
           <span>{user?.name || "Trader"} · {membershipLabel(user)}</span>
           <button onClick={load}>Refresh</button>
           <button onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
@@ -833,7 +936,7 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
                   <b>🔒 Unlock all SHAABAN VIP signals</b>
                   <span>Free members can view one selected preview signal. VIP unlocks every coin, entry, SL, targets, and live alerts.</span>
                 </div>
-                <button onClick={() => setTab("profile")}>Upgrade to VIP</button>
+                <button onClick={() => setTab("subscribe")}>Upgrade to VIP</button>
               </section>
             )}
 
@@ -897,6 +1000,8 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
           </section>
         )}
 
+        {tab === "subscribe" && <SubscribePanel user={user} onUserUpdate={onUserUpdate} />}
+
         {tab === "profile" && (
           <section className="centerPage">
             <div className="panel">
@@ -919,7 +1024,7 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
                 <div className="subscribeBox">
                   <b>Upgrade to VIP</b>
                   <span>Unlock all approved signals, targets, stop loss, live updates, and notifications.</span>
-                  <button className="primary" onClick={() => window.open("https://t.me/signal252", "_blank")}>Contact to Subscribe</button>
+                  <button className="primary" onClick={() => setTab("subscribe")}>Pay with Crypto</button>
                 </div>
               )}
               <button className="primary" onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
@@ -931,6 +1036,7 @@ function Dashboard({ user, onLogout, theme, toggleTheme }) {
       <nav className="bottomNav">
         <button className={tab==="board" ? "on" : ""} onClick={() => setTab("board")}>Board</button>
         <button className={tab==="alerts" ? "on" : ""} onClick={() => setTab("alerts")}>Alerts</button>
+        {!vipAccess && <button className={tab==="subscribe" ? "on" : ""} onClick={() => setTab("subscribe")}>VIP</button>}
         <button className={tab==="profile" ? "on" : ""} onClick={() => setTab("profile")}>Profile</button>
       </nav>
     </div>
@@ -966,7 +1072,7 @@ export default function App() {
 
 
   if (user && showWelcome) return <Welcome user={user} onContinue={() => setShowWelcome(false)} />;
-  if (user) return <Dashboard user={user} theme={theme} toggleTheme={toggleTheme} onLogout={() => { setUser(null); setScreen("landing"); }} />;
+  if (user) return <Dashboard user={user} theme={theme} toggleTheme={toggleTheme} onUserUpdate={(u) => setUser(u)} onLogout={() => { setUser(null); setScreen("landing"); }} />;
   if (screen === "login") return <Login onLogin={(u) => { setUser(u); setShowWelcome(true); }} theme={theme} toggleTheme={toggleTheme} onBack={() => setScreen("landing")} />;
   return <Landing theme={theme} toggleTheme={toggleTheme} onLogin={() => setScreen("login")} />;
 }
