@@ -544,6 +544,29 @@ function Tag({ text }) {
   return <span className={cls}>{t}</span>;
 }
 
+function UserWatermark({ user }) {
+  const username = user?.username ? `@${user.username}` : "SHAABAN VIP";
+  const uid = user?.id ? `ID ${user.id}` : "Protected";
+  const stamp = new Date().toLocaleDateString();
+  const text = `${username} • ${uid} • ${stamp}`;
+  return (
+    <div className="watermarkLayer" aria-hidden="true">
+      {Array.from({ length: 12 }).map((_, i) => <span key={i}>{text}</span>)}
+    </div>
+  );
+}
+
+function planSavings(key, price) {
+  const monthly = 30;
+  const expected = { monthly: 30, quarterly: 90, six_months: 180, yearly: 360 }[key] || 0;
+  const save = Math.max(0, expected - Number(price || 0));
+  return save ? `Save $${save}` : "Starter";
+}
+
+function planBadge(key) {
+  return { monthly: "Flexible", quarterly: "Popular", six_months: "Smart Deal", yearly: "Best Value" }[key] || "VIP";
+}
+
 function Skeleton() {
   return (
     <div className="skeleton">
@@ -565,7 +588,7 @@ function Timeline({ item }) {
   );
 }
 
-function SignalRow({ signal, logos, compact, highlighted, onOpen, isAdmin, onMakeFreePreview }) {
+function SignalRow({ signal, logos, compact, highlighted, onOpen, isAdmin, onMakeFreePreview, user }) {
   const [expanded, setExpanded] = useState(false);
   const s = sym(signal.symbol);
   const targets = Array.isArray(signal.targets) ? signal.targets : [];
@@ -574,7 +597,8 @@ function SignalRow({ signal, logos, compact, highlighted, onOpen, isAdmin, onMak
   const confidence = Math.round(Number(signal.confidence || 0));
 
   return (
-    <div className={`signal ${compact ? "compact" : ""} ${highlighted ? "highlight" : ""}`}>
+    <div className={`signal protectedSignal ${compact ? "compact" : ""} ${highlighted ? "highlight" : ""}`}>
+      <UserWatermark user={user} />
       <button className="signalMain" onClick={() => setExpanded(!expanded)}>
         <div className="asset">
           <CoinLogo symbol={s} logos={logos} />
@@ -656,7 +680,7 @@ function LockedSignalRow({ signal, compact }) {
   );
 }
 
-function SignalModal({ signal, logos, onClose }) {
+function SignalModal({ signal, logos, onClose, user }) {
   if (!signal) return null;
   const s = sym(signal.symbol);
   const targets = Array.isArray(signal.targets) ? signal.targets : [];
@@ -666,7 +690,8 @@ function SignalModal({ signal, logos, onClose }) {
 
   return (
     <div className="modalShade" onClick={onClose}>
-      <div className="modal" onClick={(e)=>e.stopPropagation()}>
+      <div className="modal protectedModal" onClick={(e)=>e.stopPropagation()}>
+        <UserWatermark user={user} />
         <div className="modalHead">
           <div className="asset big">
             <CoinLogo symbol={s} logos={logos} />
@@ -851,33 +876,35 @@ function SubscribePanel({ user, onUserUpdate }) {
   const isVip = isVipUser(user);
 
   return (
-    <section className="subscribePage">
-      <div className="subscribeHero">
+    <section className="subscribePage subscribePro">
+      <div className="subscribeHero upgraded">
         <span className="eyebrow">● SHAABAN VIP ACCESS</span>
-        <h2>{isVip ? "Your VIP access is active" : "Unlock all approved signals"}</h2>
-        <p>{isVip ? `Active until: ${formatDate(user?.subscription_expires_at)}` : "Pay securely with crypto through NOWPayments. VIP unlocks every coin, entry, stop loss, targets, and live updates."}</p>
-        <button className="clear" onClick={loadMe}>Refresh Access</button>
+        <h2>{isVip ? "Your VIP access is active" : "Choose your VIP plan"}</h2>
+        <p>{isVip ? `Active until: ${formatDate(user?.subscription_expires_at)}` : "Unlock every approved signal, entry, stop loss, target tracking, and VIP push alerts."}</p>
+        <div className="subscribeHeroActions">
+          <button className="clear" onClick={loadMe}>Refresh Access</button>
+          {!isVip && <span>Payments are processed securely by NOWPayments.</span>}
+        </div>
       </div>
 
       {err && <div className="error">{err}</div>}
       {msg && <div className="successBox">{msg}</div>}
 
-      <div className="planGrid">
+      <div className="planGrid proPlans">
         {sortedPlans.map((p) => {
           const monthly = p.days ? (Number(p.price_usd) / (Number(p.days) / 30)) : Number(p.price_usd);
           const best = p.key === "yearly";
           return (
-            <div className={`planCard ${best ? "best" : ""}`} key={p.key}>
-              {best && <em>Best Value</em>}
+            <div className={`planCard proPlanCard ${best ? "best" : ""}`} key={p.key}>
+              <div className="planTopline"><span>{planBadge(p.key)}</span>{planSavings(p.key, p.price_usd) && <em>{planSavings(p.key, p.price_usd)}</em>}</div>
               <h3>{p.label}</h3>
               <strong>${Number(p.price_usd).toFixed(0)}</strong>
-              <span>{p.days} days access</span>
-              <small>≈ ${monthly.toFixed(1)} / month</small>
-              <ul>
-                <li>All VIP signals unlocked</li>
-                <li>Entry, SL, targets and status</li>
-                <li>Live target notifications</li>
-                <li>Free preview limits removed</li>
+              <small>{p.days} days access · ≈ ${monthly.toFixed(1)} / month</small>
+              <ul className="planFeatureList">
+                <li>✅ All VIP signals unlocked</li>
+                <li>✅ Entry, SL, targets and status</li>
+                <li>✅ Push notifications for TP updates</li>
+                <li>✅ Free preview limits removed</li>
               </ul>
               <button className="primary" onClick={() => pay(p.key)} disabled={!!busyPlan}>
                 {busyPlan === p.key ? "Opening payment..." : "Pay with Crypto"}
@@ -887,13 +914,76 @@ function SubscribePanel({ user, onUserUpdate }) {
         })}
       </div>
 
-      <div className="subscribeNote">
+      <div className="subscribeNote proNote">
         <b>How it works</b>
-        <span>Choose a plan → pay with crypto → once blockchain confirmation reaches NOWPayments, your VIP access activates automatically. If it does not update instantly, use Refresh Access.</span>
+        <span>Choose a plan → pay with crypto → NOWPayments confirms the transaction → VIP access activates automatically. Use Refresh Access if blockchain confirmation takes a few minutes.</span>
       </div>
     </section>
   );
 }
+
+function SecuritySessionsPanel() {
+  const [sessions, setSessions] = useState([]);
+  const [maxDevices, setMaxDevices] = useState(3);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const loadSessions = useCallback(async () => {
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/sessions`, { credentials: "include" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSessions(data.sessions || []);
+        setMaxDevices(data.max_devices || 3);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  async function logoutOthers() {
+    setBusy(true); setMsg("");
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/sessions/logout-others`, { method: "POST", credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not logout other devices");
+      setMsg("Other devices were signed out.");
+      loadSessions();
+    } catch (e) { setMsg(e.message || "Security action failed"); }
+    finally { setBusy(false); }
+  }
+
+  async function revoke(id) {
+    setBusy(true); setMsg("");
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/sessions/${id}`, { method: "DELETE", credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not revoke session");
+      setMsg("Device session revoked.");
+      loadSessions();
+    } catch (e) { setMsg(e.message || "Security action failed"); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="securityPanel">
+      <div className="securityHead">
+        <div><b>Device Protection</b><span>Maximum active devices: {maxDevices}</span></div>
+        <button onClick={logoutOthers} disabled={busy}>Logout other devices</button>
+      </div>
+      {msg && <div className="securityMsg">{msg}</div>}
+      <div className="sessionList">
+        {sessions.length === 0 ? <span className="mutedSmall">No active sessions found.</span> : sessions.map(s => (
+          <div className={s.current ? "sessionItem current" : "sessionItem"} key={s.id}>
+            <div><b>{s.device} · {s.browser}</b><span>{s.ip || "Unknown IP"} · {formatDate(s.created_at)}</span></div>
+            {s.current ? <em>Current</em> : <button disabled={busy} onClick={() => revoke(s.id)}>Revoke</button>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [signals, setSignals] = useState([]);
@@ -1144,7 +1234,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     <div className={`dashboard ${theme === "light" ? "lightMode" : ""}`}>
       <Toasts items={toasts} />
       <Notifications open={drawerOpen} items={notifs} onClose={() => setDrawerOpen(false)} onClear={() => setNotifs([])} />
-      <SignalModal signal={selected} logos={logos} onClose={() => setSelected(null)} />
+      <SignalModal signal={selected} logos={logos} user={user} onClose={() => setSelected(null)} />
 
       <header className="topbar">
         <div className="brand">
@@ -1241,7 +1331,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
                 list.length === 0 ? <EmptyState filter={filter} /> :
                 list.map(signal => signal.locked
                   ? <LockedSignalRow key={signal.id} signal={signal} compact={compact} />
-                  : <SignalRow key={signal.id} signal={signal} logos={logos} compact={compact} highlighted={highlighted.has(signal.id)} onOpen={setSelected} isAdmin={adminAccess} onMakeFreePreview={makeFreePreview} />
+                  : <SignalRow key={signal.id} signal={signal} logos={logos} compact={compact} highlighted={highlighted.has(signal.id)} onOpen={setSelected} isAdmin={adminAccess} onMakeFreePreview={makeFreePreview} user={user} />
                 )
               }
             </section>
@@ -1282,6 +1372,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
                 <div><span>Connection</span><b className={apiOnline ? "greenText" : "goldText"}>{apiOnline ? "Live" : "Check"}</b></div>
                 <div><span>Access</span><b className={vipAccess ? "greenText" : "goldText"}>{vipAccess ? "Full" : "Preview"}</b></div>
               </div>
+              <SecuritySessionsPanel />
               {!vipAccess && (
                 <div className="subscribeBox">
                   <b>Upgrade to VIP</b>
