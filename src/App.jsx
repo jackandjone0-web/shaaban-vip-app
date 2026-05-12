@@ -1333,6 +1333,25 @@ export default function App() {
   }, []);
 
 
+  const isResetPasswordRoute = (() => {
+    try { return window.location.pathname === "/reset-password" && new URLSearchParams(window.location.search).has("token"); }
+    catch { return false; }
+  })();
+
+  if (isResetPasswordRoute) {
+    return (
+      <Login
+        onLogin={(u) => { setUser(u); setShowWelcome(true); }}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        onBack={() => {
+          try { window.history.replaceState({}, document.title, "/"); } catch {}
+          setScreen("landing");
+        }}
+      />
+    );
+  }
+
   if (user && showWelcome) return <Welcome user={user} onContinue={() => setShowWelcome(false)} />;
   if (user) return <Dashboard user={user} theme={theme} toggleTheme={toggleTheme} onUserUpdate={(u) => setUser(u)} onLogout={() => { setUser(null); setScreen("landing"); }} />;
   if (screen === "login") return <Login onLogin={(u) => { setUser(u); setShowWelcome(true); }} theme={theme} toggleTheme={toggleTheme} onBack={() => setScreen("landing")} />;
