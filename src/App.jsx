@@ -842,25 +842,6 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     }
   }
 
-  async function sendTestNotification() {
-    setPushBusy(true);
-    try {
-      const res = await fetch(`${Connection_URL}/api/push/test`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) throw new Error(data.error || "Test notification failed.");
-      addNotice("Test notification sent. Close the page and try again after enabling.", "target", "✅");
-      await refreshPushInfo();
-    } catch (e) {
-      addNotice(e.message || "Cannot send test notification.", "closed", "⚠️");
-    } finally {
-      setPushBusy(false);
-    }
-  }
-
   const addNotice = useCallback((text, type="info", icon="📡") => {
     const item = { id: Date.now() + Math.random(), text, type, icon, time: new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) };
     setToasts(p => [...p, item]);
@@ -1006,7 +987,6 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
           <button className={pushInfo.enabled ? "notifyEnabled" : "notifyBtn"} onClick={enableNotifications} disabled={pushBusy}>
             {pushInfo.enabled ? "🔔 Notifications On" : "🔔 Enable Alerts"}
           </button>
-          {pushInfo.enabled && <button className="notifyTestBtn" onClick={sendTestNotification} disabled={pushBusy}>Test</button>}
           <button className="themeToggle" onClick={toggleTheme}>{theme === "light" ? "🌙 Dark" : "☀️ Light"}</button>
           <button className="bell" onClick={() => setDrawerOpen(true)}>🔔 {notifs.length}</button>
           {!vipAccess && <button className="upgradeMini" onClick={() => setTab("subscribe")}>Upgrade</button>}
@@ -1049,7 +1029,6 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
               </div>
               <div className="pushBannerActions">
                 <button onClick={enableNotifications} disabled={pushBusy}>{pushInfo.enabled ? "Re-sync" : "Enable"}</button>
-                <button onClick={sendTestNotification} disabled={pushBusy || !pushInfo.enabled}>Test</button>
               </div>
             </section>
 
