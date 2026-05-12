@@ -1279,6 +1279,16 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       </header>
 
       <main className="container">
+        <section className="userQuickNav">
+          <button className={tab === "board" ? "on" : ""} onClick={() => openTab("board")}>Signals</button>
+          <button className={tab === "alerts" ? "on" : ""} onClick={() => openTab("alerts")}>Alerts</button>
+          <button className={tab === "subscribe" ? "on" : ""} onClick={() => openTab("subscribe")}>{vipAccess ? "Subscription" : "Upgrade"}</button>
+          <button className={tab === "profile" ? "on" : ""} onClick={() => openTab("profile")}>Profile</button>
+        </section>
+        {tab !== "board" && (
+          <button className="backToSignals" onClick={() => openTab("board")}>← Back to Signals</button>
+        )}
+
         {tab === "board" && (
           <>
             <section className="marketBanner"><b>{market.icon} {market.title}</b><span>{market.text}</span></section>
