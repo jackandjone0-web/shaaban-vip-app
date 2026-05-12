@@ -389,3 +389,9 @@
 .pushBanner span{display:block;color:var(--muted);font-size:13px;line-height:1.45}.pushBannerActions{display:flex;gap:8px;flex-wrap:wrap}.pushBannerActions button{border:1px solid rgba(148,163,184,.18);background:#111827;color:#cbd5e1;border-radius:12px;padding:9px 12px}.pushBannerActions button:first-child{background:var(--gold);border-color:var(--gold);color:#111827;font-weight:900}.pushBannerActions button:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:720px){.pushBanner{align-items:flex-start;flex-direction:column}.pushBannerActions,.pushBannerActions button{width:100%}.topActions .notifyTestBtn{display:none}}
 .lightMode .pushBanner{background:rgba(245,158,11,.10)}.lightMode .pushBanner.enabled{background:rgba(34,197,94,.10)}
+
+/* Email OTP / Password Reset */
+.otpInput{letter-spacing:8px;text-align:center;font-size:24px;font-weight:900}
+.forgotLink{border:0;background:transparent;color:var(--gold2);font-weight:800;margin-top:10px;padding:8px;text-decoration:underline;cursor:pointer}
+.clear.full{width:100%;margin-top:10px;text-align:center;justify-content:center}
+.successBox{border:1px solid rgba(74,222,128,.24);background:rgba(34,197,94,.10);color:var(--green);border-radius:14px;padding:10px 12px;margin:10px 0;font-size:13px;line-height:1.45}

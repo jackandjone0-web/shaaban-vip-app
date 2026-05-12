@@ -234,6 +234,34 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
   const [regPassword, setRegPassword] = useState("");
   const [pendingMessage, setPendingMessage] = useState("");
 
+  const [verifyUsername, setVerifyUsername] = useState("");
+  const [verifyEmail, setVerifyEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPassword2, setNewPassword2] = useState("");
+
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      const token = url.searchParams.get("token");
+      if (token) {
+        setResetToken(token);
+        setMode("reset");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch {}
+  }, []);
+
+  function openVerify({ email, username, message }) {
+    setVerifyEmail(email || regEmail);
+    setVerifyUsername(username || regUsername);
+    setOtp("");
+    setPendingMessage(message || "We sent a 6-digit verification code to your email. Please check Inbox or Spam.");
+    setMode("verify");
+  }
+
   async function submit() {
     setErr("");
     setBusy(true);
@@ -245,7 +273,13 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Login failed");
+      if (!res.ok || !data.success) {
+        if (data.status === "pending_email") {
+          openVerify({ email: data.email, username: data.username || username, message: "Please verify your email before login. Check Inbox or Spam." });
+          return;
+        }
+        throw new Error(data.error || "Login failed");
+      }
       if (remember) localStorage.setItem("shaaban_user", JSON.stringify(data.user));
       onLogin(data.user);
     } catch (e) {
@@ -274,13 +308,17 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Registration failed");
+      if (data.needs_verification) {
+        openVerify(data);
+        return;
+      }
       if (data.user) {
         localStorage.setItem("shaaban_user", JSON.stringify(data.user));
         onLogin(data.user);
         return;
       }
-      setPendingMessage(data.message || "Account created. You can login now as Free Preview.");
-      setMode("pending");
+      setPendingMessage(data.message || "Account created.");
+      setMode("login");
     } catch (e) {
       setErr(e.message || "Registration failed");
     } finally {
@@ -288,16 +326,146 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
     }
   }
 
-  if (mode === "pending") {
+  async function verifyEmailCode() {
+    setErr("");
+    setBusy(true);
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/verify-email`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: verifyUsername, email: verifyEmail, otp }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Verification failed");
+      localStorage.setItem("shaaban_user", JSON.stringify(data.user));
+      onLogin(data.user);
+    } catch (e) {
+      setErr(e.message || "Verification failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendCode() {
+    setErr("");
+    setBusy(true);
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/resend-verification`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: verifyUsername, email: verifyEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not resend code");
+      setPendingMessage(data.message || "Verification code sent again. Check Inbox or Spam.");
+    } catch (e) {
+      setErr(e.message || "Could not resend code");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestPasswordReset() {
+    setErr("");
+    setPendingMessage("");
+    setBusy(true);
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/forgot-password`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not send reset email");
+      setPendingMessage(data.message || "If this email exists, a password reset link has been sent. Check Inbox or Spam.");
+    } catch (e) {
+      setErr(e.message || "Could not send reset email");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resetPassword() {
+    setErr("");
+    setPendingMessage("");
+    if (newPassword !== newPassword2) {
+      setErr("Passwords do not match");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch(`${Connection_URL}/api/auth/reset-password`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: resetToken, password: newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not reset password");
+      setPendingMessage(data.message || "Password updated. Please login with your new password.");
+      setPassword("");
+      setMode("login");
+    } catch (e) {
+      setErr(e.message || "Could not reset password");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (mode === "verify") {
     return (
       <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
         <div className="loginCard approvalCard">
           <button className="back" onClick={onBack}>← Back</button>
-          <div className="bigBolt">⏳</div>
-          <h1>Account Created</h1>
-          <p>{pendingMessage || "Your Free Preview account is ready."}</p>
-          <div className="approvalNote">Login to view the free preview signal. Upgrade to VIP to unlock all signals.</div>
-          <button className="primary" onClick={() => setMode("login")}>Back to Login</button>
+          <div className="bigBolt">📩</div>
+          <h1>Verify Your Email</h1>
+          <p>{pendingMessage || "We sent a 6-digit code to your email."}</p>
+          <div className="approvalNote">Email: <b>{verifyEmail}</b><br />Please check Inbox or Spam.</div>
+          <input className="otpInput" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} onKeyDown={(e)=>e.key==="Enter"&&verifyEmailCode()} placeholder="6-digit code" />
+          {err && <div className="error">{err}</div>}
+          <button className="primary" onClick={verifyEmailCode} disabled={busy || otp.length !== 6}>{busy ? "Verifying..." : "Verify Email"}</button>
+          <button className="clear full" onClick={resendCode} disabled={busy}>{busy ? "Please wait..." : "Resend Code"}</button>
+          <button className="clear full" onClick={() => setMode("login")}>Back to Login</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "forgot") {
+    return (
+      <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
+        <div className="loginCard approvalCard">
+          <button className="back" onClick={onBack}>← Back</button>
+          <div className="bigBolt">🔐</div>
+          <h1>Reset Password</h1>
+          <p>Enter your account email. We will send a secure reset link.</p>
+          <input value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="Email" />
+          {err && <div className="error">{err}</div>}
+          {pendingMessage && <div className="successBox">{pendingMessage}</div>}
+          <button className="primary" onClick={requestPasswordReset} disabled={busy}>{busy ? "Sending..." : "Send Reset Link"}</button>
+          <button className="clear full" onClick={() => setMode("login")}>Back to Login</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "reset") {
+    return (
+      <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
+        <div className="loginCard approvalCard">
+          <button className="back" onClick={onBack}>← Back</button>
+          <div className="bigBolt">🔑</div>
+          <h1>Set New Password</h1>
+          <p>Choose a new password for your account.</p>
+          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password, min 8 characters" />
+          <input type="password" value={newPassword2} onChange={(e) => setNewPassword2(e.target.value)} placeholder="Confirm new password" />
+          {err && <div className="error">{err}</div>}
+          {pendingMessage && <div className="successBox">{pendingMessage}</div>}
+          <button className="primary" onClick={resetPassword} disabled={busy}>{busy ? "Saving..." : "Update Password"}</button>
+          <button className="clear full" onClick={() => setMode("login")}>Back to Login</button>
         </div>
       </div>
     );
@@ -321,8 +489,10 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
             <input value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&submit()} placeholder="Username" />
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&submit()} placeholder="Password" />
             <label className="remember"><input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} /> Remember me</label>
+            {pendingMessage && <div className="successBox">{pendingMessage}</div>}
             {err && <div className="error">{err}</div>}
             <button className="primary" onClick={submit} disabled={busy}>{busy ? "Opening..." : "Enter Dashboard"}</button>
+            <button className="forgotLink" onClick={() => { setMode("forgot"); setErr(""); setPendingMessage(""); }}>Forgot password?</button>
           </>
         ) : (
           <>
@@ -333,7 +503,7 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
             <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Password, min 8 characters" />
             {err && <div className="error">{err}</div>}
             <button className="primary" onClick={register} disabled={busy}>{busy ? "Creating..." : "Create Account"}</button>
-            <div className="approvalNote">Free account opens immediately. Upgrade to VIP to unlock all signals.</div>
+            <div className="approvalNote">We will send a verification code to your email. Check Inbox or Spam.</div>
           </>
         )}
       </div>
