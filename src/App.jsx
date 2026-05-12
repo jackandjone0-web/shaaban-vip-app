@@ -881,6 +881,7 @@ function SubscribePanel({ user, onUserUpdate }) {
         <span className="eyebrow">● SHAABAN VIP ACCESS</span>
         <h2>{isVip ? "Your VIP access is active" : "Choose your VIP plan"}</h2>
         <p>{isVip ? `Active until: ${formatDate(user?.subscription_expires_at)}` : "Unlock every approved signal, entry, stop loss, target tracking, and VIP push alerts."}</p>
+        <div className="riskNote">⚠️ Signals are educational market alerts, not financial advice. Always manage risk and trade with money you can afford to lose.</div>
         <div className="subscribeHeroActions">
           <button className="clear" onClick={loadMe}>Refresh Access</button>
           {!isVip && <span>Payments are processed securely by NOWPayments.</span>}
@@ -1008,6 +1009,27 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [pushBusy, setPushBusy] = useState(false);
   const vipAccess = isVipUser(user);
   const adminAccess = isAdminUser(user);
+
+  const openTab = useCallback((nextTab) => {
+    const allowed = ["board", "alerts", "subscribe", "profile"];
+    const clean = allowed.includes(nextTab) ? nextTab : "board";
+    setTab(clean);
+    try {
+      localStorage.setItem("shaaban_user_tab", clean);
+      const hash = clean === "board" ? "" : `#${clean}`;
+      window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}${hash}`);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      const hashTab = (window.location.hash || "").replace("#", "");
+      const savedTab = localStorage.getItem("shaaban_user_tab");
+      const allowed = ["board", "alerts", "subscribe", "profile"];
+      const initial = allowed.includes(hashTab) ? hashTab : (allowed.includes(savedTab || "") ? savedTab : "board");
+      setTab(initial);
+    } catch {}
+  }, []);
 
   useEffect(() => {
     try {
@@ -1249,7 +1271,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
           </button>
           <button className="themeToggle" onClick={toggleTheme}>{theme === "light" ? "🌙 Dark" : "☀️ Light"}</button>
           <button className="bell" onClick={() => setDrawerOpen(true)}>🔔 {notifs.length}</button>
-          {!vipAccess && <button className="upgradeMini" onClick={() => setTab("subscribe")}>Upgrade</button>}
+          {!vipAccess && <button className="upgradeMini" onClick={() => openTab("subscribe")}>Upgrade</button>}
           <span>{user?.name || "Trader"} · {membershipLabel(user)}</span>
           <button onClick={load}>Refresh</button>
           <button onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
@@ -1278,7 +1300,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
                   <b>🔒 Unlock all SHAABAN VIP signals</b>
                   <span>Free members can view one selected preview signal. VIP unlocks every coin, entry, SL, targets, and live alerts.</span>
                 </div>
-                <button onClick={() => setTab("subscribe")}>Upgrade to VIP</button>
+                <button onClick={() => openTab("subscribe")}>Upgrade to VIP</button>
               </section>
             )}
 
@@ -1377,7 +1399,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
                 <div className="subscribeBox">
                   <b>Upgrade to VIP</b>
                   <span>Unlock all approved signals, targets, stop loss, live updates, and notifications.</span>
-                  <button className="primary" onClick={() => setTab("subscribe")}>Pay with Crypto</button>
+                  <button className="primary" onClick={() => openTab("subscribe")}>Pay with Crypto</button>
                 </div>
               )}
               <button className="primary" onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
@@ -1387,10 +1409,10 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       </main>
 
       <nav className="bottomNav">
-        <button className={tab==="board" ? "on" : ""} onClick={() => setTab("board")}>Board</button>
-        <button className={tab==="alerts" ? "on" : ""} onClick={() => setTab("alerts")}>Alerts</button>
-        {!vipAccess && <button className={tab==="subscribe" ? "on" : ""} onClick={() => setTab("subscribe")}>VIP</button>}
-        <button className={tab==="profile" ? "on" : ""} onClick={() => setTab("profile")}>Profile</button>
+        <button className={tab==="board" ? "on" : ""} onClick={() => openTab("board")}>Board</button>
+        <button className={tab==="alerts" ? "on" : ""} onClick={() => openTab("alerts")}>Alerts</button>
+        {!vipAccess && <button className={tab==="subscribe" ? "on" : ""} onClick={() => openTab("subscribe")}>VIP</button>}
+        <button className={tab==="profile" ? "on" : ""} onClick={() => openTab("profile")}>Profile</button>
       </nav>
     </div>
   );
