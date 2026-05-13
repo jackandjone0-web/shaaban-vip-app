@@ -939,7 +939,7 @@ function AutoCopyPanel({ user, freeModeActive }) {
   const [err, setErr] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
-  const access = hasAutoCopyAccess(user, freeModeActive);
+  const access = Boolean(freeModeActive) || hasAutoCopyAccess(user, freeModeActive);
   const settings = data?.settings || {};
   const [form, setForm] = useState({ enabled: false, trade_amount_usdt: 25, max_capital_usdt: 100, exit_target: "tp1" });
 
@@ -1127,7 +1127,11 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [pushInfo, setPushInfo] = useState({ supported: false, enabled: false, configured: false, permission: "default", subscriptions: 0 });
   const [pushBusy, setPushBusy] = useState(false);
   const [platformSettings, setPlatformSettings] = useState({ free_mode: false, banner_title: "", banner_text: "" });
-  const freeModeActive = Boolean(platformSettings?.free_mode);
+  const freeModeActive = Boolean(
+    platformSettings?.free_mode ??
+    platformSettings?.settings?.free_mode ??
+    platformSettings?.data?.free_mode
+  );
   const vipAccess = isVipUser(user) || freeModeActive;
   const adminAccess = isAdminUser(user);
 
