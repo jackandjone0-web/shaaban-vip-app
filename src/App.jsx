@@ -88,6 +88,12 @@ function isAdminUser(user) {
   return userRole(user) === "ADMIN";
 }
 
+function hasAutoCopyAccess(user, freeModeActive) {
+  const role = userRole(user);
+  const plan = String(user?.plan || user?.subscription_plan || user?.active_plan || "").toLowerCase();
+  return Boolean(freeModeActive) || role === "ADMIN" || Boolean(user?.auto_copy_access) || Boolean(user?.has_auto_copy) || Boolean(user?.subscription_auto_copy) || plan.includes("auto");
+}
+
 function membershipLabel(user) {
   const role = userRole(user);
   if (role === "ADMIN") return "Admin";
