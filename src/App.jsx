@@ -871,7 +871,7 @@ function SubscribePanel({ user, onUserUpdate }) {
     }
   }
 
-  const order = ["monthly", "quarterly", "six_months", "yearly"];
+  const order = ["monthly", "quarterly", "six_months", "yearly", "auto_monthly", "auto_quarterly", "auto_six_months", "auto_yearly"];
   const sortedPlans = [...plans].sort((a,b) => order.indexOf(a.key) - order.indexOf(b.key));
   const isVip = isVipUser(user);
 
@@ -894,7 +894,8 @@ function SubscribePanel({ user, onUserUpdate }) {
       <div className="planGrid proPlans">
         {sortedPlans.map((p) => {
           const monthly = p.days ? (Number(p.price_usd) / (Number(p.days) / 30)) : Number(p.price_usd);
-          const best = p.key === "yearly";
+          const isAuto = Boolean(p.auto_copy) || String(p.key).startsWith("auto_");
+          const best = p.key === "yearly" || p.key === "auto_yearly";
           return (
             <div className={`planCard proPlanCard ${best ? "best" : ""}`} key={p.key}>
               <div className="planTopline"><span>{planBadge(p.key)}</span>{planSavings(p.key, p.price_usd) && <em>{planSavings(p.key, p.price_usd)}</em>}</div>
@@ -906,6 +907,8 @@ function SubscribePanel({ user, onUserUpdate }) {
                 <li>✅ Entry, SL, targets and status</li>
                 <li>✅ Push notifications for TP updates</li>
                 <li>✅ Free preview limits removed</li>
+                {isAuto && <li>🤖 Auto Copy Pro access included</li>}
+                {isAuto && <li>🛡️ Stop Loss always ON</li>}
               </ul>
               <button className="primary" onClick={() => pay(p.key)} disabled={!!busyPlan}>
                 {busyPlan === p.key ? "Opening payment..." : "Pay with Crypto"}
@@ -922,6 +925,105 @@ function SubscribePanel({ user, onUserUpdate }) {
     </section>
   );
 }
+
+function AutoCopyPanel({ user, freeModeActive }) {
+  const [data, setData] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [apiSecret, setApiSecret] = useState("");
+  const access = hasAutoCopyAccess(user, freeModeActive);
+  const settings = data?.settings || {};
+  const [form, setForm] = useState({ enabled: false, trade_amount_usdt: 25, max_capital_usdt: 100, exit_target: "tp1" });
+
+  const calcMaxOpen = useMemo(() => {
+    const amount = Number(form.trade_amount_usdt || 0);
+    const capital = Number(form.max_capital_usdt || 0);
+    if (!amount || !capital) return 1;
+    return Math.max(1, Math.min(Number(settings.hard_max_open_trades || 7), Math.floor(capital / amount)));
+  }, [form.trade_amount_usdt, form.max_capital_usdt, settings.hard_max_open_trades]);
+
+  async function load() {
+    if (!access) return;
+    setBusy(true); setErr("");
+    try {
+      const res = await fetch(`${Connection_URL}/api/copy/settings`, { credentials: "include" });
+      const d = await res.json();
+      if (!res.ok || !d.success) throw new Error(d.error || "Cannot load Auto Copy");
+      setData(d);
+      const s = d.settings || {};
+      setForm({ enabled: !!s.enabled, trade_amount_usdt: s.trade_amount_usdt || 25, max_capital_usdt: s.max_capital_usdt || 100, exit_target: s.exit_target || "tp1" });
+    } catch(e) { setErr(e.message || "Cannot load Auto Copy"); }
+    finally { setBusy(false); }
+  }
+
+  useEffect(() => { load(); }, [access]);
+
+  async function connectBinance(e) {
+    e.preventDefault(); setBusy(true); setErr(""); setMsg("");
+    try {
+      const res = await fetch(`${Connection_URL}/api/copy/binance/connect`, { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ api_key: apiKey, api_secret: apiSecret }) });
+      const d = await res.json();
+      if (!res.ok || !d.success) throw new Error(d.error || "Binance connection failed");
+      setMsg("Binance Spot connected successfully."); setApiKey(""); setApiSecret(""); await load();
+    } catch(e) { setErr(e.message || "Binance connection failed"); }
+    finally { setBusy(false); }
+  }
+
+  async function saveSettings(nextEnabled = form.enabled) {
+    setBusy(true); setErr(""); setMsg("");
+    try {
+      const payload = { ...form, enabled: nextEnabled };
+      const res = await fetch(`${Connection_URL}/api/copy/settings`, { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+      const d = await res.json();
+      if (!res.ok || !d.success) throw new Error(d.error || "Could not save Auto Copy settings");
+      setMsg(nextEnabled ? "Auto Copy Pro is ON." : "Auto Copy Pro is OFF."); setData(d); await load();
+    } catch(e) { setErr(e.message || "Could not save settings"); }
+    finally { setBusy(false); }
+  }
+
+  if (!access) {
+    return <section className="autoCopyPage"><div className="autoCopyHero locked"><h2>🤖 Auto Copy Pro</h2><p>Auto Copy Pro is available for Auto Copy members. Upgrade your plan to connect Binance and copy approved signals automatically.</p><button className="primary" onClick={() => window.location.hash = "subscribe"}>Upgrade to Auto Copy Pro</button></div></section>;
+  }
+
+  return (
+    <section className="autoCopyPage">
+      <div className="autoCopyHero">
+        <div><span className="eyebrow">● BINANCE SPOT ONLY</span><h2>🤖 SHAABAN Auto Copy Pro</h2><p>Copy approved SHAABAN signals automatically. Stop Loss is always ON.</p></div>
+        <div className={settings.enabled ? "copyStatus on" : "copyStatus"}><b>{settings.enabled ? "ON" : "OFF"}</b><span>Auto Copy</span></div>
+      </div>
+      {freeModeActive && <div className="copyFreeBanner">🎁 Free Mode Active — Auto Copy Pro access is open. It only runs if you enable it yourself.</div>}
+      {err && <div className="error">{err}</div>}{msg && <div className="successBox">{msg}</div>}
+      <div className="autoCopyGrid">
+        <div className="panel autoPanel">
+          <h3>1. Connect Binance Spot</h3>
+          <p className="mutedText">Withdraw permission must be OFF. Add server IP to Binance whitelist: <b>{settings.server_ip || "check server IP"}</b></p>
+          <form onSubmit={connectBinance} className="copyForm">
+            <input value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="Binance API Key" />
+            <input value={apiSecret} onChange={e=>setApiSecret(e.target.value)} placeholder="Binance Secret Key" type="password" />
+            <button className="primary" disabled={busy}>{settings.binance_connected ? "Re-Verify / Update Key" : "Verify Binance Connection"}</button>
+          </form>
+          <div className="safetyList"><span>✅ Spot Trading only</span><span>❌ Withdraw permission must be OFF</span><span>🛡️ Stop Loss always ON</span></div>
+        </div>
+        <div className="panel autoPanel">
+          <h3>2. Copy Settings</h3>
+          <div className="copySettingsGrid">
+            <label>Trade Amount per Signal<input type="number" min="10" step="1" value={form.trade_amount_usdt} onChange={e=>setForm({...form, trade_amount_usdt:e.target.value})} /></label>
+            <label>Max Auto Copy Capital<input type="number" min="10" step="1" value={form.max_capital_usdt} onChange={e=>setForm({...form, max_capital_usdt:e.target.value})} /></label>
+            <label>Exit Target<select value={form.exit_target} onChange={e=>setForm({...form, exit_target:e.target.value})}><option value="tp1">Sell at TP1</option><option value="tp2">Sell at TP2</option><option value="tp3">Sell at TP3</option><option value="tp4">Sell at TP4</option></select></label>
+            <div className="computedBox"><span>Calculated Max Open</span><b>{calcMaxOpen}</b><small>Hard cap: {settings.hard_max_open_trades || 7}</small></div>
+          </div>
+          <button onClick={() => saveSettings(false)} disabled={busy}>Save OFF</button>
+          <button className="primary" onClick={() => saveSettings(true)} disabled={busy || !settings.binance_connected}>Save & Enable Auto Copy</button>
+        </div>
+      </div>
+      <div className="panel wide autoPanel"><h3>Live Copy Logs</h3>{(data?.logs || []).length === 0 ? <div className="empty small">No copy logs yet.</div> : <div className="copyLogs">{data.logs.map(l=><div key={l.id} className={`copyLog ${l.event_type}`}><b>{l.event_type}</b><span>{l.message}</span><em>{new Date(Number(l.created_at || 0)).toLocaleString()}</em></div>)}</div>}</div>
+      <div className="panel wide autoPanel"><h3>Copied Trades</h3>{(data?.trades || []).length === 0 ? <div className="empty small">No copied trades yet.</div> : <div className="copyTradeList">{data.trades.map(t=><div key={t.id} className="copyTrade"><b>#{t.symbol}</b><span>{t.status} · {Number(t.trade_amount_usdt || 0).toFixed(2)} USDT · Exit {String(t.exit_target || '').toUpperCase()}</span><em>{t.pnl_pct ? `${Number(t.pnl_pct).toFixed(2)}%` : "—"}</em></div>)}</div>}</div>
+    </section>
+  );
+}
+
 
 function SecuritySessionsPanel() {
   const [sessions, setSessions] = useState([]);
@@ -1007,7 +1109,9 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [pushInfo, setPushInfo] = useState({ supported: false, enabled: false, configured: false, permission: "default", subscriptions: 0 });
   const [pushBusy, setPushBusy] = useState(false);
-  const vipAccess = isVipUser(user);
+  const [platformSettings, setPlatformSettings] = useState({ free_mode: false, banner_title: "", banner_text: "" });
+  const freeModeActive = Boolean(platformSettings?.free_mode);
+  const vipAccess = isVipUser(user) || freeModeActive;
   const adminAccess = isAdminUser(user);
 
   const openTab = useCallback((nextTab) => {
@@ -1020,6 +1124,16 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}${hash}`);
     } catch {}
   }, []);
+
+  const loadPlatformSettings = useCallback(async () => {
+    try {
+      const res = await fetch(`${Connection_URL}/api/platform-settings`, { credentials: "include" });
+      const data = await parseApiJson(res);
+      if (res.ok && data.success) setPlatformSettings(data);
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadPlatformSettings(); }, [loadPlatformSettings]);
 
   useEffect(() => {
     try {
@@ -1158,7 +1272,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); loadPlatformSettings(); }, [load, loadPlatformSettings]);
   useEffect(() => { refreshPushInfo(); }, []);
   const makeFreePreview = useCallback(async (signal) => {
     if (!signal?.key) {
@@ -1261,7 +1375,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       <header className="topbar">
         <div className="brand">
           <div className="bolt">⚡</div>
-          <div><b>SHAABAN SIGNAL PRO</b><span>{vipAccess ? "VIP Signals Dashboard" : "Free Preview Dashboard"}</span></div>
+          <div><b>SHAABAN SIGNAL PRO</b><span>{freeModeActive ? "Free Mode Active" : (vipAccess ? "VIP Signals Dashboard" : "Free Preview Dashboard")}</span></div>
         </div>
 
         <div className="topActions">
@@ -1283,10 +1397,18 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
           <button className={tab === "board" ? "on" : ""} onClick={() => openTab("board")}>Signals</button>
           <button className={tab === "alerts" ? "on" : ""} onClick={() => openTab("alerts")}>Alerts</button>
           <button className={tab === "subscribe" ? "on" : ""} onClick={() => openTab("subscribe")}>{vipAccess ? "Subscription" : "Upgrade"}</button>
+          <button className={tab === "autoCopy" ? "on" : ""} onClick={() => openTab("autoCopy")}>Auto Copy Pro</button>
           <button className={tab === "profile" ? "on" : ""} onClick={() => openTab("profile")}>Profile</button>
         </section>
         {tab !== "board" && (
           <button className="backToSignals" onClick={() => openTab("board")}>← Back to Signals</button>
+        )}
+
+        {freeModeActive && (
+          <section className="freeModeBanner">
+            <b>{platformSettings.banner_title || "🎁 Free Mode Active"}</b>
+            <span>{platformSettings.banner_text || "جميع الإشارات مفتوحة ."}</span>
+          </section>
         )}
 
         {tab === "board" && (
@@ -1385,6 +1507,8 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
         )}
 
         {tab === "subscribe" && <SubscribePanel user={user} onUserUpdate={onUserUpdate} />}
+
+        {tab === "autoCopy" && <AutoCopyPanel user={user} freeModeActive={freeModeActive} />}
 
         {tab === "profile" && (
           <section className="centerPage">
