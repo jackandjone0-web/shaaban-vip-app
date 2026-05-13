@@ -983,6 +983,10 @@ function AutoCopyPanel({ user, freeModeActive }) {
     finally { setBusy(false); }
   }
 
+  const tradeAmountNum = Number(form.trade_amount_usdt || 0);
+  const showHighTradeWarning = tradeAmountNum >= 1000;
+  const showExtremeTradeWarning = tradeAmountNum >= 10000;
+
   if (!access) {
     return <section className="autoCopyPage"><div className="autoCopyHero locked"><h2>🤖 Auto Copy Pro</h2><p>Auto Copy Pro is available for Auto Copy members. Upgrade your plan to connect Binance and copy approved signals automatically.</p><button className="primary" onClick={() => window.location.hash = "subscribe"}>Upgrade to Auto Copy Pro</button></div></section>;
   }
@@ -1010,6 +1014,13 @@ function AutoCopyPanel({ user, freeModeActive }) {
           <h3>2. Copy Settings</h3>
           <div className="copySettingsGrid">
             <label>Trade Amount per Signal<input type="number" min="10" step="1" value={form.trade_amount_usdt} onChange={e=>setForm({...form, trade_amount_usdt:e.target.value})} /></label>
+            {showHighTradeWarning && (
+              <div className={showExtremeTradeWarning ? "copyRiskWarning extreme" : "copyRiskWarning"}>
+                <b>⚠️ High Trade Amount</b>
+                <span>المبلغ لكل صفقة كبير. تأكد من الرصيد والمخاطرة قبل تفعيل النسخ التلقائي.</span>
+                <small>{showExtremeTradeWarning ? "Very high risk — ننصح بالتجربة بمبلغ أصغر أولًا." : "Risk reminder — Stop Loss is always ON, but crypto trading remains risky."}</small>
+              </div>
+            )}
             <label>Max Auto Copy Capital<input type="number" min="10" step="1" value={form.max_capital_usdt} onChange={e=>setForm({...form, max_capital_usdt:e.target.value})} /></label>
             <label>Exit Target<select value={form.exit_target} onChange={e=>setForm({...form, exit_target:e.target.value})}><option value="tp1">Sell at TP1</option><option value="tp2">Sell at TP2</option><option value="tp3">Sell at TP3</option><option value="tp4">Sell at TP4</option></select></label>
             <div className="computedBox"><span>Calculated Max Open</span><b>{calcMaxOpen}</b><small>Hard cap: {settings.hard_max_open_trades || 7}</small></div>
@@ -1115,7 +1126,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const adminAccess = isAdminUser(user);
 
   const openTab = useCallback((nextTab) => {
-    const allowed = ["board", "alerts", "subscribe", "profile"];
+    const allowed = ["board", "alerts", "subscribe", "autoCopy", "profile"];
     const clean = allowed.includes(nextTab) ? nextTab : "board";
     setTab(clean);
     try {
@@ -1139,7 +1150,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     try {
       const hashTab = (window.location.hash || "").replace("#", "");
       const savedTab = localStorage.getItem("shaaban_user_tab");
-      const allowed = ["board", "alerts", "subscribe", "profile"];
+      const allowed = ["board", "alerts", "subscribe", "autoCopy", "profile"];
       const initial = allowed.includes(hashTab) ? hashTab : (allowed.includes(savedTab || "") ? savedTab : "board");
       setTab(initial);
     } catch {}
@@ -1546,6 +1557,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
         <button className={tab==="board" ? "on" : ""} onClick={() => openTab("board")}>Board</button>
         <button className={tab==="alerts" ? "on" : ""} onClick={() => openTab("alerts")}>Alerts</button>
         {!vipAccess && <button className={tab==="subscribe" ? "on" : ""} onClick={() => openTab("subscribe")}>VIP</button>}
+        <button className={tab==="autoCopy" ? "on" : ""} onClick={() => openTab("autoCopy")}>Copy</button>
         <button className={tab==="profile" ? "on" : ""} onClick={() => openTab("profile")}>Profile</button>
       </nav>
     </div>
