@@ -1133,14 +1133,16 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
 
   const openTab = useCallback((nextTab) => {
     const allowed = ["board", "alerts", "subscribe", "autoCopy", "profile"];
-    const clean = allowed.includes(nextTab) ? nextTab : "board";
+    let clean = allowed.includes(nextTab) ? nextTab : "board";
+    // When Free Mode is active, subscriptions are not shown because access is open.
+    if (freeModeActive && clean === "subscribe") clean = "board";
     setTab(clean);
     try {
       localStorage.setItem("shaaban_user_tab", clean);
       const hash = clean === "board" ? "" : `#${clean}`;
       window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}${hash}`);
     } catch {}
-  }, []);
+  }, [freeModeActive]);
 
   const loadPlatformSettings = useCallback(async () => {
     try {
@@ -1157,10 +1159,11 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       const hashTab = (window.location.hash || "").replace("#", "");
       const savedTab = localStorage.getItem("shaaban_user_tab");
       const allowed = ["board", "alerts", "subscribe", "autoCopy", "profile"];
-      const initial = allowed.includes(hashTab) ? hashTab : (allowed.includes(savedTab || "") ? savedTab : "board");
+      let initial = allowed.includes(hashTab) ? hashTab : (allowed.includes(savedTab || "") ? savedTab : "board");
+      if (freeModeActive && initial === "subscribe") initial = "board";
       setTab(initial);
     } catch {}
-  }, []);
+  }, [freeModeActive]);
 
   useEffect(() => {
     try {
@@ -1413,7 +1416,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
         <section className="userQuickNav">
           <button className={tab === "board" ? "on" : ""} onClick={() => openTab("board")}>Signals</button>
           <button className={tab === "alerts" ? "on" : ""} onClick={() => openTab("alerts")}>Alerts</button>
-          <button className={tab === "subscribe" ? "on" : ""} onClick={() => openTab("subscribe")}>{vipAccess ? "Subscription" : "Upgrade"}</button>
+          {!freeModeActive && <button className={tab === "subscribe" ? "on" : ""} onClick={() => openTab("subscribe")}>{vipAccess ? "Subscription" : "Upgrade"}</button>}
           <button className={tab === "autoCopy" ? "on" : ""} onClick={() => openTab("autoCopy")}>Auto Copy Pro</button>
           <button className={tab === "profile" ? "on" : ""} onClick={() => openTab("profile")}>Profile</button>
         </section>
@@ -1523,7 +1526,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
           </section>
         )}
 
-        {tab === "subscribe" && <SubscribePanel user={user} onUserUpdate={onUserUpdate} />}
+        {tab === "subscribe" && !freeModeActive && <SubscribePanel user={user} onUserUpdate={onUserUpdate} />}
 
         {tab === "autoCopy" && <AutoCopyPanel user={user} freeModeActive={freeModeActive} />}
 
