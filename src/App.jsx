@@ -960,6 +960,19 @@ function SubscribePanel({ user, onUserUpdate }) {
   );
 }
 
+function normalizeCopySettings(payload) {
+  const raw = payload?.settings || payload || {};
+  return {
+    ...raw,
+    enabled: Boolean(raw.enabled ?? raw.auto_copy_enabled ?? raw.copy_enabled ?? payload?.enabled ?? payload?.auto_copy_enabled ?? false),
+    binance_connected: Boolean(raw.binance_connected ?? raw.binanceConnected ?? raw.connected ?? payload?.binance_connected ?? payload?.connected ?? false),
+    trade_amount_usdt: raw.trade_amount_usdt ?? raw.trade_amount ?? payload?.trade_amount_usdt ?? 25,
+    max_capital_usdt: raw.max_capital_usdt ?? raw.max_capital ?? payload?.max_capital_usdt ?? 100,
+    exit_target: raw.exit_target ?? payload?.exit_target ?? "tp1",
+    hard_max_open_trades: raw.hard_max_open_trades ?? payload?.hard_max_open_trades ?? 7,
+  };
+}
+
 function AutoCopyPanel({ user, freeModeActive }) {
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -985,8 +998,8 @@ function AutoCopyPanel({ user, freeModeActive }) {
       const res = await fetch(`${Connection_URL}/api/copy/settings`, { credentials: "include" });
       const d = await res.json();
       if (!res.ok || !d.success) throw new Error(d.error || "Cannot load Auto Copy");
-      setData(d);
-      const s = d.settings || {};
+      const s = normalizeCopySettings(d);
+      setData({ ...d, settings: s });
       setForm({ enabled: !!s.enabled, trade_amount_usdt: s.trade_amount_usdt || 25, max_capital_usdt: s.max_capital_usdt || 100, exit_target: s.exit_target || "tp1" });
     } catch(e) { setErr(e.message || "Cannot load Auto Copy"); }
     finally { setBusy(false); }
@@ -1008,11 +1021,15 @@ function AutoCopyPanel({ user, freeModeActive }) {
   async function saveSettings(nextEnabled = form.enabled) {
     setBusy(true); setErr(""); setMsg("");
     try {
-      const payload = { ...form, enabled: nextEnabled };
+      const payload = { ...form, enabled: nextEnabled, auto_copy_enabled: nextEnabled };
       const res = await fetch(`${Connection_URL}/api/copy/settings`, { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
       const d = await res.json();
       if (!res.ok || !d.success) throw new Error(d.error || "Could not save Auto Copy settings");
-      setMsg(nextEnabled ? "Auto Copy Pro is ON." : "Auto Copy Pro is OFF."); setData(d); await load();
+      const s = normalizeCopySettings({ ...d, settings: { ...(d.settings || {}), enabled: nextEnabled, auto_copy_enabled: nextEnabled } });
+      setData({ ...d, settings: s });
+      setForm(p => ({ ...p, enabled: nextEnabled }));
+      setMsg(nextEnabled ? "Auto Copy Pro is ON." : "Auto Copy Pro is OFF.");
+      setTimeout(load, 600);
     } catch(e) { setErr(e.message || "Could not save settings"); }
     finally { setBusy(false); }
   }
@@ -1320,6 +1337,12 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     }
   }, []);
 
+  const fullSync = useCallback(async () => {
+    setLoading(true);
+    await Promise.allSettled([loadPlatformSettings(), load(), refreshPushInfo()]);
+    addNotice("Synced now", "system", "🔄");
+  }, [loadPlatformSettings, load, addNotice]);
+
   useEffect(() => { load(); loadPlatformSettings(); }, [load, loadPlatformSettings]);
 
   // Keep Free Mode / Subscription Mode synced while the user keeps the app open.
@@ -1451,10 +1474,10 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       <SignalModal signal={selected} logos={logos} user={user} onClose={() => setSelected(null)} />
 
       <header className="topbar">
-        <div className="brand">
+        <button type="button" className="brand brandHome" onClick={() => openTab("board")} title="Back to home">
           <div className="bolt">⚡</div>
           <div><b>SHAABAN SIGNAL PRO</b><span>{freeModeActive ? "Free Mode Active" : (vipAccess ? "VIP Signals Dashboard" : "Free Preview Dashboard")}</span></div>
-        </div>
+        </button>
 
         <div className="topActions">
           <button className="installBtn" onClick={installApp}>📱 Install</button>
@@ -1465,7 +1488,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
           <button className="bell" onClick={() => setDrawerOpen(true)}>🔔 {notifs.length}</button>
           {!vipAccess && <button className="upgradeMini" onClick={() => openTab("subscribe")}>Upgrade</button>}
           <span>{user?.name || "Trader"} · {membershipLabel(user)}</span>
-          <button onClick={load}>Refresh</button>
+          <button onClick={fullSync}>Sync Now</button>
           <button onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
         </div>
       </header>
