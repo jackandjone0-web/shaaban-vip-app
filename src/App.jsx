@@ -3,6 +3,34 @@ import "./App.css";
 
 const Connection_URL = "https://api.shaabansignals.online";
 
+async function parseApiJson(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`API returned non-JSON (${res.status}). Please restart/redeploy the API or check the route.`);
+  }
+}
+
+function asBool(v) {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v === 1;
+  if (typeof v === "string") return ["1", "true", "yes", "on"].includes(v.trim().toLowerCase());
+  return false;
+}
+
+function getPlatformFreeMode(settings) {
+  return asBool(
+    settings?.free_mode ??
+    settings?.platform_free_mode ??
+    settings?.freeMode ??
+    settings?.settings?.free_mode ??
+    settings?.settings?.platform_free_mode ??
+    settings?.data?.free_mode ??
+    settings?.data?.platform_free_mode
+  );
+}
+
 const DEFAULT_LOGOS = {
   BTC: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
   ETH: "https://assets.coingecko.com/coins/images/279/large/ethereum.png",
@@ -1127,11 +1155,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [pushInfo, setPushInfo] = useState({ supported: false, enabled: false, configured: false, permission: "default", subscriptions: 0 });
   const [pushBusy, setPushBusy] = useState(false);
   const [platformSettings, setPlatformSettings] = useState({ free_mode: false, banner_title: "", banner_text: "" });
-  const freeModeActive = Boolean(
-    platformSettings?.free_mode ??
-    platformSettings?.settings?.free_mode ??
-    platformSettings?.data?.free_mode
-  );
+  const freeModeActive = getPlatformFreeMode(platformSettings);
   const vipAccess = isVipUser(user) || freeModeActive;
   const adminAccess = isAdminUser(user);
 
@@ -1348,8 +1372,17 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       load();
     });
 
+    const refreshPlatform = () => {
+      loadPlatformSettings();
+      load();
+    };
+    es.addEventListener("platform_settings", refreshPlatform);
+    es.addEventListener("platform-settings", refreshPlatform);
+    es.addEventListener("free_mode", refreshPlatform);
+    es.addEventListener("free-mode", refreshPlatform);
+
     return () => es.close();
-  }, [load, addNotice, highlight]);
+  }, [load, addNotice, highlight, loadPlatformSettings]);
 
   const stats = useMemo(() => {
     const active = signals.filter(x => x.status === "active").length;
