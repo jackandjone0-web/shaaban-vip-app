@@ -1503,7 +1503,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
             <section className="signals">
               {loading ? <Skeleton /> :
                 list.length === 0 ? <EmptyState filter={filter} /> :
-                list.map(signal => signal.locked
+                list.map(signal => (!vipAccess && signal.locked)
                   ? <LockedSignalRow key={signal.id} signal={signal} compact={compact} />
                   : <SignalRow key={signal.id} signal={signal} logos={logos} compact={compact} highlighted={highlighted.has(signal.id)} onOpen={setSelected} isAdmin={adminAccess} onMakeFreePreview={makeFreePreview} user={user} />
                 )
