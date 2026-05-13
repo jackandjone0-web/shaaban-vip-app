@@ -1046,7 +1046,12 @@ function AutoCopyPanel({ user, freeModeActive }) {
     <section className="autoCopyPage">
       <div className="autoCopyHero">
         <div><span className="eyebrow">● BINANCE SPOT ONLY</span><h2>🤖 SHAABAN Auto Copy Pro</h2><p>Copy approved SHAABAN signals automatically. Stop Loss is always ON.</p></div>
-        <div className={settings.enabled ? "copyStatus on" : "copyStatus"}><b>{settings.enabled ? "ON" : "OFF"}</b><span>Auto Copy</span></div>
+        <div className={settings.enabled ? "copyStatus on" : "copyStatus"} aria-label={settings.enabled ? "Auto Copy status enabled" : "Auto Copy status disabled"}>
+          <small>Status</small>
+          <b>{settings.enabled ? "ON" : "OFF"}</b>
+          <span>{settings.enabled ? "Auto Copy is active" : settings.binance_connected ? "Ready to enable below" : "Connect Binance first"}</span>
+          {!settings.enabled && <em>Not a button</em>}
+        </div>
       </div>
       {freeModeActive && <div className="copyFreeBanner">🎁 Free Mode Active — Auto Copy Pro access is open. It only runs if you enable it yourself.</div>}
       {err && <div className="error">{err}</div>}{msg && <div className="successBox">{msg}</div>}
@@ -1076,8 +1081,16 @@ function AutoCopyPanel({ user, freeModeActive }) {
             <label>Exit Target<select value={form.exit_target} onChange={e=>setForm({...form, exit_target:e.target.value})}><option value="tp1">Sell at TP1</option><option value="tp2">Sell at TP2</option><option value="tp3">Sell at TP3</option><option value="tp4">Sell at TP4</option></select></label>
             <div className="computedBox"><span>Calculated Max Open</span><b>{calcMaxOpen}</b><small>Hard cap: {settings.hard_max_open_trades || 7}</small></div>
           </div>
-          <button onClick={() => saveSettings(false)} disabled={busy}>Save OFF</button>
-          <button className="primary" onClick={() => saveSettings(true)} disabled={busy || !settings.binance_connected}>Save & Enable Auto Copy</button>
+          <div className={settings.binance_connected ? "copyEnableBox ready" : "copyEnableBox"}>
+            <div>
+              <b>{settings.enabled ? "Auto Copy is running" : settings.binance_connected ? "Ready to start" : "Connect Binance first"}</b>
+              <span>{settings.enabled ? "اضغط Save OFF لإيقاف النسخ التلقائي." : settings.binance_connected ? "اضغط Enable Auto Copy لتشغيل النسخ التلقائي." : "اربط Binance بالأعلى حتى تتفعل كبسة التشغيل."}</span>
+            </div>
+            <button className="primary bigEnable" onClick={() => saveSettings(true)} disabled={busy || !settings.binance_connected || settings.enabled}>
+              {settings.enabled ? "Auto Copy Enabled" : settings.binance_connected ? "Enable Auto Copy" : "Connect Binance First"}
+            </button>
+          </div>
+          <button className="clear stopCopyBtn" onClick={() => saveSettings(false)} disabled={busy || !settings.enabled}>Turn Auto Copy OFF</button>
         </div>
       </div>
       <div className="panel wide autoPanel"><h3>Live Copy Logs</h3>{(data?.logs || []).length === 0 ? <div className="empty small">No copy logs yet.</div> : <div className="copyLogs">{data.logs.map(l=><div key={l.id} className={`copyLog ${l.event_type}`}><b>{l.event_type}</b><span>{l.message}</span><em>{new Date(Number(l.created_at || 0)).toLocaleString()}</em></div>)}</div>}</div>
