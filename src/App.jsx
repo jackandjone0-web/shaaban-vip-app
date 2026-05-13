@@ -1321,6 +1321,27 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }, []);
 
   useEffect(() => { load(); loadPlatformSettings(); }, [load, loadPlatformSettings]);
+
+  // Keep Free Mode / Subscription Mode synced while the user keeps the app open.
+  // This makes the VIP dashboard lock again shortly after Admin turns Free Mode OFF.
+  useEffect(() => {
+    const syncPlatformState = () => {
+      loadPlatformSettings();
+      load();
+    };
+
+    const interval = setInterval(syncPlatformState, 15000);
+    window.addEventListener("focus", syncPlatformState);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) syncPlatformState();
+    });
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", syncPlatformState);
+    };
+  }, [load, loadPlatformSettings]);
+
   useEffect(() => { refreshPushInfo(); }, []);
   const makeFreePreview = useCallback(async (signal) => {
     if (!signal?.key) {
