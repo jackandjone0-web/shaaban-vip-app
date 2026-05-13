@@ -962,9 +962,15 @@ function SubscribePanel({ user, onUserUpdate }) {
 
 function normalizeCopySettings(payload) {
   const raw = payload?.settings || payload || {};
+  const enabled = Boolean(raw.enabled ?? raw.auto_copy_enabled ?? raw.copy_enabled ?? payload?.enabled ?? payload?.auto_copy_enabled ?? false);
+  const paused = Boolean(raw.paused ?? payload?.paused ?? (enabled && payload?.access_allowed === false));
   return {
     ...raw,
-    enabled: Boolean(raw.enabled ?? raw.auto_copy_enabled ?? raw.copy_enabled ?? payload?.enabled ?? payload?.auto_copy_enabled ?? false),
+    enabled,
+    effective_enabled: Boolean(raw.effective_enabled ?? payload?.effective_enabled ?? (paused ? false : enabled)),
+    paused,
+    pause_reason: raw.pause_reason ?? payload?.pause_reason ?? "",
+    access_allowed: Boolean(raw.access_allowed ?? payload?.access_allowed ?? true),
     binance_connected: Boolean(raw.binance_connected ?? raw.binanceConnected ?? raw.connected ?? payload?.binance_connected ?? payload?.connected ?? false),
     trade_amount_usdt: raw.trade_amount_usdt ?? raw.trade_amount ?? payload?.trade_amount_usdt ?? 25,
     max_capital_usdt: raw.max_capital_usdt ?? raw.max_capital ?? payload?.max_capital_usdt ?? 100,
@@ -992,12 +998,24 @@ function AutoCopyPanel({ user, freeModeActive }) {
   }, [form.trade_amount_usdt, form.max_capital_usdt, settings.hard_max_open_trades]);
 
   async function load() {
-    if (!access) return;
     setBusy(true); setErr("");
     try {
       const res = await fetch(`${Connection_URL}/api/copy/settings`, { credentials: "include" });
       const d = await res.json();
-      if (!res.ok || !d.success) throw new Error(d.error || "Cannot load Auto Copy");
+      if (!res.ok || !d.success) {
+        if (res.status === 403 && !access) {
+          const pausedSettings = normalizeCopySettings({
+            success: true,
+            access_allowed: false,
+            paused: true,
+            pause_reason: "subscription_required",
+            settings: { enabled: false, effective_enabled: false, paused: true, access_allowed: false }
+          });
+          setData({ success: true, access_allowed: false, paused: true, pause_reason: "subscription_required", settings: pausedSettings, logs: [], trades: [] });
+          return;
+        }
+        throw new Error(d.error || "Cannot load Auto Copy");
+      }
       const s = normalizeCopySettings(d);
       setData({ ...d, settings: s });
       setForm({ enabled: !!s.enabled, trade_amount_usdt: s.trade_amount_usdt || 25, max_capital_usdt: s.max_capital_usdt || 100, exit_target: s.exit_target || "tp1" });
@@ -1038,22 +1056,61 @@ function AutoCopyPanel({ user, freeModeActive }) {
   const showHighTradeWarning = tradeAmountNum >= 1000;
   const showExtremeTradeWarning = tradeAmountNum >= 10000;
 
+  const effectiveEnabled = Boolean(settings.effective_enabled ?? (settings.enabled && access));
+  const pausedBySubscription = Boolean((data?.paused || settings.paused || (settings.enabled && !access)) && !effectiveEnabled);
+
   if (!access) {
-    return <section className="autoCopyPage"><div className="autoCopyHero locked"><h2>🤖 Auto Copy Pro</h2><p>Auto Copy Pro is available for Auto Copy members. Upgrade your plan to connect Binance and copy approved signals automatically.</p><button className="primary" onClick={() => window.location.hash = "subscribe"}>Upgrade to Auto Copy Pro</button></div></section>;
+    return (
+      <section className="autoCopyPage">
+        <div className="autoCopyHero paused">
+          <div>
+            <span className="eyebrow">● SUBSCRIPTION REQUIRED</span>
+            <h2>⏸️ Auto Copy Paused</h2>
+            <p>Auto Copy is paused because Free Mode is OFF and this account does not have an active Auto Copy Pro subscription.</p>
+          </div>
+          <div className="copyStatus paused" aria-label="Auto Copy paused">
+            <small>Status</small>
+            <b>PAUSED</b>
+            <span>No new Binance trades will be copied</span>
+          </div>
+        </div>
+        <div className="copyPausedBanner">
+          🛡️ الحماية شغالة: لن يتم فتح صفقات جديدة على Binance. إذا كنت رابط Binance سابقاً، المفاتيح تبقى محفوظة ولا تُحذف.
+        </div>
+        {err && <div className="error">{err}</div>}
+        <div className="autoCopyGrid">
+          <div className="panel autoPanel pausedAccessCard">
+            <h3>What happens now?</h3>
+            <div className="safetyList vertical">
+              <span>⏸️ Auto Copy is paused automatically.</span>
+              <span>🚫 No new approved signals will be copied to Binance.</span>
+              <span>🔐 Binance keys stay saved if they were connected before.</span>
+              <span>✅ After subscribing, you can enable Auto Copy again.</span>
+            </div>
+            <button className="primary bigEnable" onClick={() => window.location.hash = "subscribe"}>Upgrade to Auto Copy Pro</button>
+          </div>
+          <div className="panel autoPanel pausedAccessCard">
+            <h3>الحالة بالعربي</h3>
+            <p className="mutedText">الأوتو كوبي متوقف مؤقتاً بسبب الاشتراك. هذا لا يعني حذف ربط Binance، فقط يمنع نسخ صفقات جديدة حتى يتم تفعيل الاشتراك أو يرجع Free Mode.</p>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
     <section className="autoCopyPage">
       <div className="autoCopyHero">
         <div><span className="eyebrow">● BINANCE SPOT ONLY</span><h2>🤖 SHAABAN Auto Copy Pro</h2><p>Copy approved SHAABAN signals automatically. Stop Loss is always ON.</p></div>
-        <div className={settings.enabled ? "copyStatus on" : "copyStatus"} aria-label={settings.enabled ? "Auto Copy status enabled" : "Auto Copy status disabled"}>
+        <div className={pausedBySubscription ? "copyStatus paused" : effectiveEnabled ? "copyStatus on" : "copyStatus"} aria-label={pausedBySubscription ? "Auto Copy paused" : effectiveEnabled ? "Auto Copy status enabled" : "Auto Copy status disabled"}>
           <small>Status</small>
-          <b>{settings.enabled ? "ON" : "OFF"}</b>
-          <span>{settings.enabled ? "Auto Copy is active" : settings.binance_connected ? "Ready to enable below" : "Connect Binance first"}</span>
-          {!settings.enabled && <em>Not a button</em>}
+          <b>{pausedBySubscription ? "PAUSED" : effectiveEnabled ? "ON" : "OFF"}</b>
+          <span>{pausedBySubscription ? "Subscription required" : effectiveEnabled ? "Auto Copy is active" : settings.binance_connected ? "Ready to enable below" : "Connect Binance first"}</span>
+          {!effectiveEnabled && <em>Not a button</em>}
         </div>
       </div>
       {freeModeActive && <div className="copyFreeBanner">🎁 Free Mode Active — Auto Copy Pro access is open. It only runs if you enable it yourself.</div>}
+      {pausedBySubscription && <div className="copyPausedBanner">⏸️ Auto Copy paused — subscription required. No new Binance trades will be copied, and your Binance connection stays saved.</div>}
       {err && <div className="error">{err}</div>}{msg && <div className="successBox">{msg}</div>}
       <div className="autoCopyGrid">
         <div className="panel autoPanel">
@@ -1083,11 +1140,11 @@ function AutoCopyPanel({ user, freeModeActive }) {
           </div>
           <div className={settings.binance_connected ? "copyEnableBox ready" : "copyEnableBox"}>
             <div>
-              <b>{settings.enabled ? "Auto Copy is running" : settings.binance_connected ? "Ready to start" : "Connect Binance first"}</b>
-              <span>{settings.enabled ? "اضغط Save OFF لإيقاف النسخ التلقائي." : settings.binance_connected ? "اضغط Enable Auto Copy لتشغيل النسخ التلقائي." : "اربط Binance بالأعلى حتى تتفعل كبسة التشغيل."}</span>
+              <b>{pausedBySubscription ? "Auto Copy is paused" : effectiveEnabled ? "Auto Copy is running" : settings.binance_connected ? "Ready to start" : "Connect Binance first"}</b>
+              <span>{pausedBySubscription ? "النسخ متوقف مؤقتاً بسبب الاشتراك. لن يتم نسخ صفقات جديدة." : effectiveEnabled ? "اضغط Turn Auto Copy OFF لإيقاف النسخ التلقائي." : settings.binance_connected ? "اضغط Enable Auto Copy لتشغيل النسخ التلقائي." : "اربط Binance بالأعلى حتى تتفعل كبسة التشغيل."}</span>
             </div>
-            <button className="primary bigEnable" onClick={() => saveSettings(true)} disabled={busy || !settings.binance_connected || settings.enabled}>
-              {settings.enabled ? "Auto Copy Enabled" : settings.binance_connected ? "Enable Auto Copy" : "Connect Binance First"}
+            <button className="primary bigEnable" onClick={() => saveSettings(true)} disabled={busy || !settings.binance_connected || effectiveEnabled || pausedBySubscription}>
+              {pausedBySubscription ? "Paused — Subscription Required" : effectiveEnabled ? "Auto Copy Enabled" : settings.binance_connected ? "Enable Auto Copy" : "Connect Binance First"}
             </button>
           </div>
           <button className="clear stopCopyBtn" onClick={() => saveSettings(false)} disabled={busy || !settings.enabled}>Turn Auto Copy OFF</button>
