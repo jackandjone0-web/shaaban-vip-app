@@ -939,7 +939,7 @@ function AutoCopyPanel({ user, freeModeActive }) {
   const [err, setErr] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
-  const access = Boolean(freeModeActive) || hasAutoCopyAccess(user, freeModeActive);
+  const access = hasAutoCopyAccess(user, freeModeActive);
   const settings = data?.settings || {};
   const [form, setForm] = useState({ enabled: false, trade_amount_usdt: 25, max_capital_usdt: 100, exit_target: "tp1" });
 
@@ -1507,10 +1507,13 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
             <section className="signals">
               {loading ? <Skeleton /> :
                 list.length === 0 ? <EmptyState filter={filter} /> :
-                list.map(signal => (!vipAccess && signal.locked)
-                  ? <LockedSignalRow key={signal.id} signal={signal} compact={compact} />
-                  : <SignalRow key={signal.id} signal={signal} logos={logos} compact={compact} highlighted={highlighted.has(signal.id)} onOpen={setSelected} isAdmin={adminAccess} onMakeFreePreview={makeFreePreview} user={user} />
-                )
+                list.map(signal => {
+                  const unlockedByFreeMode = freeModeActive || vipAccess;
+                  const isLocked = !unlockedByFreeMode && signal.locked;
+                  return isLocked
+                    ? <LockedSignalRow key={signal.id} signal={signal} compact={compact} />
+                    : <SignalRow key={signal.id} signal={{ ...signal, locked: false }} logos={logos} compact={compact} highlighted={highlighted.has(signal.id)} onOpen={setSelected} isAdmin={adminAccess} onMakeFreePreview={makeFreePreview} user={user} />;
+                })
               }
             </section>
 
