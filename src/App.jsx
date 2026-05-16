@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 const Connection_URL = "https://api.shaabansignals.online";
@@ -9,6 +9,16 @@ async function parseApiJson(res) {
     return JSON.parse(text);
   } catch {
     throw new Error(`API returned non-JSON (${res.status}). Please restart/redeploy the API or check the route.`);
+  }
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -1242,6 +1252,11 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [pushInfo, setPushInfo] = useState({ supported: false, enabled: false, configured: false, permission: "default", subscriptions: 0 });
   const [pushBusy, setPushBusy] = useState(false);
   const [platformSettings, setPlatformSettings] = useState({ free_mode: false, banner_title: "", banner_text: "" });
+  const signalsRef = useRef([]);
+  const loadRef = useRef({ inFlight: false, lastAt: 0 });
+  const retryTimerRef = useRef(null);
+  const sseRef = useRef(null);
+  const lastWakeRef = useRef(Date.now());
   const freeModeActive = getPlatformFreeMode(platformSettings);
   const vipAccess = isVipUser(user) || freeModeActive;
   const adminAccess = isAdminUser(user);
@@ -1390,48 +1405,87 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     }), 7500);
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts = {}) => {
+    const forced = Boolean(opts.force);
+    const state = loadRef.current;
+    const now = Date.now();
+    if (!forced && state.inFlight) return;
+    if (!forced && now - state.lastAt < 6000) return;
+
+    state.inFlight = true;
     try {
-      setErr("");
-      const res = await fetch(`${Connection_URL}/api/signals`, { credentials: "include" });
-      if (!res.ok) throw new Error("Connection error");
-      const data = await res.json();
-      setSignals(data);
+      const res = await fetchWithTimeout(`${Connection_URL}/api/signals`, { credentials: "include" }, 12000);
+      if (res.status === 401) {
+        setApiOnline(false);
+        setErr("Session expired. Please login again.");
+        return;
+      }
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const data = await parseApiJson(res);
+      setSignals(Array.isArray(data) ? data : []);
+      signalsRef.current = Array.isArray(data) ? data : [];
       setApiOnline(true);
+      setErr("");
+      state.lastAt = Date.now();
       setLastUpdate(new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}));
-    } catch {
-      setErr("Cannot load signals. Check Connection connection.");
+    } catch (e) {
       setApiOnline(false);
+      // Keep the last good signals on screen after laptop sleep / temporary network loss.
+      if ((signalsRef.current || []).length === 0) {
+        setErr("Cannot load signals. Check API connection.");
+      } else {
+        setErr("Connection paused. Reconnecting...");
+      }
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = setTimeout(() => load({ force: true }), 3500);
     } finally {
+      state.inFlight = false;
       setLoading(false);
     }
   }, []);
 
   const fullSync = useCallback(async () => {
     setLoading(true);
-    await Promise.allSettled([loadPlatformSettings(), load(), refreshPushInfo()]);
+    await Promise.allSettled([loadPlatformSettings(), load({ force: true }), refreshPushInfo()]);
     addNotice("Synced now", "system", "🔄");
   }, [loadPlatformSettings, load, addNotice]);
 
-  useEffect(() => { load(); loadPlatformSettings(); }, [load, loadPlatformSettings]);
+  useEffect(() => { load({ force: true }); loadPlatformSettings(); }, [load, loadPlatformSettings]);
 
   // Keep Free Mode / Subscription Mode synced while the user keeps the app open.
   // This makes the VIP dashboard lock again shortly after Admin turns Free Mode OFF.
   useEffect(() => {
-    const syncPlatformState = () => {
+    const syncPlatformState = (force = false) => {
       loadPlatformSettings();
-      load();
+      load({ force });
     };
 
-    const interval = setInterval(syncPlatformState, 15000);
-    window.addEventListener("focus", syncPlatformState);
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) syncPlatformState();
-    });
+    const onWake = () => {
+      const sleptLong = Date.now() - lastWakeRef.current > 30000;
+      lastWakeRef.current = Date.now();
+      syncPlatformState(true);
+      if (sleptLong && sseRef.current) {
+        try { sseRef.current.close(); } catch {}
+        sseRef.current = null;
+      }
+    };
+
+    const interval = setInterval(() => {
+      if (!document.hidden) syncPlatformState(false);
+    }, 15000);
+
+    window.addEventListener("focus", onWake);
+    window.addEventListener("online", onWake);
+    window.addEventListener("pageshow", onWake);
+    document.addEventListener("visibilitychange", onWake);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener("focus", syncPlatformState);
+      window.removeEventListener("focus", onWake);
+      window.removeEventListener("online", onWake);
+      window.removeEventListener("pageshow", onWake);
+      document.removeEventListener("visibilitychange", onWake);
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     };
   }, [load, loadPlatformSettings]);
 
@@ -1463,39 +1517,74 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }, []);
 
   useEffect(() => {
-    const es = new EventSource(`${Connection_URL}/api/events`, { withCredentials: true });
-    es.onopen = () => setSseOnline(true);
-    es.onerror = () => setSseOnline(false);
+    let reconnectTimer = null;
 
-    es.addEventListener("new_signal", (e) => {
-      try {
-        const d = JSON.parse(e.data || "{}");
-        addNotice(`New VIP signal: ${sym(d.symbol)}`, "new", "⚡");
-        highlight(d.id);
-      } catch {}
-      load();
-    });
+    const connectSse = () => {
+      if (document.hidden) return;
+      if (sseRef.current) {
+        try { sseRef.current.close(); } catch {}
+        sseRef.current = null;
+      }
 
-    es.addEventListener("status_update", (e) => {
-      try {
-        const d = JSON.parse(e.data || "{}");
-        const isTarget = String(d.status || "").startsWith("tp");
-        addNotice(`${sym(d.symbol)} ${isTarget ? "reached target" : "closed"}`, isTarget ? "target" : "closed", isTarget ? "🎯" : "🛑");
-        highlight(d.id);
-      } catch {}
-      load();
-    });
+      const es = new EventSource(`${Connection_URL}/api/events`, { withCredentials: true });
+      sseRef.current = es;
+      es.onopen = () => setSseOnline(true);
+      es.onerror = () => {
+        setSseOnline(false);
+        try { es.close(); } catch {}
+        if (sseRef.current === es) sseRef.current = null;
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connectSse, 4000);
+      };
 
-    const refreshPlatform = () => {
-      loadPlatformSettings();
-      load();
+      es.addEventListener("new_signal", (e) => {
+        try {
+          const d = JSON.parse(e.data || "{}");
+          addNotice(`New VIP signal: ${sym(d.symbol)}`, "new", "⚡");
+          highlight(d.id);
+        } catch {}
+        load({ force: true });
+      });
+
+      es.addEventListener("status_update", (e) => {
+        try {
+          const d = JSON.parse(e.data || "{}");
+          const isTarget = String(d.status || "").startsWith("tp");
+          addNotice(`${sym(d.symbol)} ${isTarget ? "reached target" : "closed"}`, isTarget ? "target" : "closed", isTarget ? "🎯" : "🛑");
+          highlight(d.id);
+        } catch {}
+        load({ force: true });
+      });
+
+      const refreshPlatform = () => {
+        loadPlatformSettings();
+        load({ force: true });
+      };
+      es.addEventListener("platform_settings", refreshPlatform);
+      es.addEventListener("platform-settings", refreshPlatform);
+      es.addEventListener("free_mode", refreshPlatform);
+      es.addEventListener("free-mode", refreshPlatform);
     };
-    es.addEventListener("platform_settings", refreshPlatform);
-    es.addEventListener("platform-settings", refreshPlatform);
-    es.addEventListener("free_mode", refreshPlatform);
-    es.addEventListener("free-mode", refreshPlatform);
 
-    return () => es.close();
+    connectSse();
+
+    const onVisible = () => {
+      if (!document.hidden && !sseRef.current) connectSse();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    window.addEventListener("online", onVisible);
+
+    return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      window.removeEventListener("online", onVisible);
+      if (sseRef.current) {
+        try { sseRef.current.close(); } catch {}
+        sseRef.current = null;
+      }
+    };
   }, [load, addNotice, highlight, loadPlatformSettings]);
 
   const stats = useMemo(() => {
