@@ -1595,7 +1595,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     };
     const active = signals.filter(x => x._board_source === "open" || x.status === "active").length;
     const hit = signals.filter(x => stageOf(x) > 0).length;
-    const closed = signals.filter(x => x._board_source === "closed" && stageOf(x) === 0).length;
+    const closed = signals.filter(x => x.status === "stopped").length;
     const today = signals.filter(x => {
       const t = Number(x.created_at || x.updated_at || x.closed_at || 0);
       return t && Date.now() - t < 24 * 60 * 60 * 1000;
@@ -1614,7 +1614,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
 
     if (filter === "active") arr = arr.filter(x => x._board_source === "open" || x.status === "active");
     if (filter === "hit") arr = arr.filter(x => String(x.status || "").startsWith("tp") || x.tp1_hit || x.tp2_hit || x.tp3_hit || x.tp4_hit || Number(x.last_tp_update_stage || x.highest_tp_stage || 0) > 0);
-    if (filter === "closed") arr = arr.filter(x => x._board_source === "closed" && (tradeStage(x) === 0 && !x.tp1_hit && !x.tp2_hit && !x.tp3_hit && !x.tp4_hit && Number(x.last_tp_update_stage || x.highest_tp_stage || 0) === 0));
+    if (filter === "closed") arr = arr.filter(x => x.status === "stopped");
 
     if (search.trim()) {
       const q = search.trim().toUpperCase();
