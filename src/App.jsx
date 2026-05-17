@@ -1588,11 +1588,16 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }, [load, addNotice, highlight, loadPlatformSettings]);
 
   const stats = useMemo(() => {
-    const active = signals.filter(x => x.status === "active").length;
-    const hit = signals.filter(x => ["tp1","tp2","tp3","tp4"].includes(x.status)).length;
-    const closed = signals.filter(x => x.status === "stopped").length;
+    const stageOf = (x) => {
+      const flags = x?.tp4_hit ? 4 : x?.tp3_hit ? 3 : x?.tp2_hit ? 2 : x?.tp1_hit ? 1 : 0;
+      const statusStage = String(x?.status || "").startsWith("tp") ? Number(String(x.status).replace("tp","")) : 0;
+      return Math.max(statusStage || 0, Number(x?.last_tp_update_stage || x?.highest_tp_stage || 0), flags);
+    };
+    const active = signals.filter(x => x._board_source === "open" || x.status === "active").length;
+    const hit = signals.filter(x => stageOf(x) > 0).length;
+    const closed = signals.filter(x => x._board_source === "closed").length;
     const today = signals.filter(x => {
-      const t = Number(x.created_at || 0);
+      const t = Number(x.created_at || x.updated_at || x.closed_at || 0);
       return t && Date.now() - t < 24 * 60 * 60 * 1000;
     }).length;
     return { active, hit, closed, today, total: signals.length };
@@ -1607,9 +1612,9 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const list = useMemo(() => {
     let arr = [...signals];
 
-    if (filter === "active") arr = arr.filter(x => x.status === "active");
-    if (filter === "hit") arr = arr.filter(x => ["tp1","tp2","tp3","tp4"].includes(x.status));
-    if (filter === "closed") arr = arr.filter(x => x.status === "stopped");
+    if (filter === "active") arr = arr.filter(x => x._board_source === "open" || x.status === "active");
+    if (filter === "hit") arr = arr.filter(x => String(x.status || "").startsWith("tp") || x.tp1_hit || x.tp2_hit || x.tp3_hit || x.tp4_hit || Number(x.last_tp_update_stage || x.highest_tp_stage || 0) > 0);
+    if (filter === "closed") arr = arr.filter(x => x._board_source === "closed");
 
     if (search.trim()) {
       const q = search.trim().toUpperCase();
