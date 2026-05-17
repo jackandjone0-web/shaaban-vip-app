@@ -41,6 +41,28 @@ function getPlatformFreeMode(settings) {
   );
 }
 
+
+function safeArray(value, keys = []) {
+  if (Array.isArray(value)) return value;
+  for (const key of keys) {
+    if (Array.isArray(value?.[key])) return value[key];
+  }
+  return [];
+}
+
+function safeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function handleUnauthorizedResponse(res, fallbackMessage = "Session expired. Please login again.") {
+  if (res?.status === 401) {
+    try { localStorage.removeItem("shaaban_user"); } catch {}
+    return { unauthorized: true, success: false, error: fallbackMessage };
+  }
+  return null;
+}
+
+
 const DEFAULT_LOGOS = {
   BTC: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
   ETH: "https://assets.coingecko.com/coins/images/279/large/ethereum.png",
@@ -889,7 +911,7 @@ function SubscribePanel({ user, onUserUpdate }) {
   useEffect(() => {
     fetch(`${Connection_URL}/api/subscription/plans`, { credentials: "include" })
       .then(r => r.json())
-      .then(d => setPlans(d?.plans || []))
+      .then(d => setPlans(safeArray(d, ["plans"])))
       .catch(() => setErr("Cannot load subscription plans."));
   }, []);
 
@@ -1160,8 +1182,8 @@ function AutoCopyPanel({ user, freeModeActive }) {
           <button className="clear stopCopyBtn" onClick={() => saveSettings(false)} disabled={busy || !settings.enabled}>Turn Auto Copy OFF</button>
         </div>
       </div>
-      <div className="panel wide autoPanel"><h3>Live Copy Logs</h3>{(data?.logs || []).length === 0 ? <div className="empty small">No copy logs yet.</div> : <div className="copyLogs">{data.logs.map(l=><div key={l.id} className={`copyLog ${l.event_type}`}><b>{l.event_type}</b><span>{l.message}</span><em>{new Date(Number(l.created_at || 0)).toLocaleString()}</em></div>)}</div>}</div>
-      <div className="panel wide autoPanel"><h3>Copied Trades</h3>{(data?.trades || []).length === 0 ? <div className="empty small">No copied trades yet.</div> : <div className="copyTradeList">{data.trades.map(t=><div key={t.id} className="copyTrade"><b>#{t.symbol}</b><span>{t.status} · {Number(t.trade_amount_usdt || 0).toFixed(2)} USDT · Exit {String(t.exit_target || '').toUpperCase()}</span><em>{t.pnl_pct ? `${Number(t.pnl_pct).toFixed(2)}%` : "—"}</em></div>)}</div>}</div>
+      <div className="panel wide autoPanel"><h3>Live Copy Logs</h3>{safeArray(data, ["logs"]).length === 0 ? <div className="empty small">No copy logs yet.</div> : <div className="copyLogs">{safeArray(data, ["logs"]).map(l=><div key={l.id} className={`copyLog ${l.event_type}`}><b>{l.event_type}</b><span>{l.message}</span><em>{new Date(Number(l.created_at || 0)).toLocaleString()}</em></div>)}</div>}</div>
+      <div className="panel wide autoPanel"><h3>Copied Trades</h3>{safeArray(data, ["trades"]).length === 0 ? <div className="empty small">No copied trades yet.</div> : <div className="copyTradeList">{safeArray(data, ["trades"]).map(t=><div key={t.id} className="copyTrade"><b>#{t.symbol}</b><span>{t.status} · {Number(t.trade_amount_usdt || 0).toFixed(2)} USDT · Exit {String(t.exit_target || '').toUpperCase()}</span><em>{t.pnl_pct ? `${Number(t.pnl_pct).toFixed(2)}%` : "—"}</em></div>)}</div>}</div>
     </section>
   );
 }
@@ -1178,7 +1200,7 @@ function SecuritySessionsPanel() {
       const res = await fetch(`${Connection_URL}/api/auth/sessions`, { credentials: "include" });
       const data = await res.json();
       if (res.ok && data.success) {
-        setSessions(data.sessions || []);
+        setSessions(safeArray(data, ["sessions"]));
         setMaxDevices(data.max_devices || 3);
       }
     } catch {}
@@ -1833,7 +1855,15 @@ export default function App() {
 
   useEffect(() => {
     fetch(`${Connection_URL}/api/auth/me`, { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
+      .then(async (r) => {
+        if (r.status === 401) {
+          localStorage.removeItem("shaaban_user");
+          setUser(null);
+          setScreen("landing");
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
       .then(d => {
         if (d?.success && d.user) {
           setUser(d.user);
