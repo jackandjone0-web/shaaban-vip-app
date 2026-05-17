@@ -1422,7 +1422,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       }
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await parseApiJson(res);
-      setSignals(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : (Array.isArray(data.signals) ? data.signals : []); setSignals(list);
       signalsRef.current = Array.isArray(data) ? data : [];
       setApiOnline(true);
       setErr("");
