@@ -894,68 +894,197 @@ function formatDate(ts) {
   try { return new Date(Number(ts)).toLocaleDateString(); } catch { return "—"; }
 }
 
+
 function SubscribePanel({ user, onUserUpdate }) {
   const [plans, setPlans] = useState([]);
   const [busyPlan, setBusyPlan] = useState("");
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
 
-  const loadMe = useCallback(async () => {
+  const isVip = isVipUser(user);
+
+  function pPrice(plan) {
+    const v = plan?.price ?? plan?.price_usd ?? plan?.price_usdt ?? plan?.amount_usd ?? plan?.amount_usdt ?? plan?.amount;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function pMonthly(plan) {
+    const m = Number(plan?.monthly_equivalent);
+    if (Number.isFinite(m) && m > 0) return m;
+    const price = pPrice(plan);
+    const days = Number(plan?.days || 30);
+    return days > 0 ? Math.round((price / (days / 30)) * 100) / 100 : price;
+  }
+
+  function isAutoPlan(plan) {
+    const k = String(plan?.key || plan?.plan || plan?.code || "").toLowerCase();
+    const n = String(plan?.name || "").toLowerCase();
+    return k.startsWith("auto_") || k.includes("auto") || n.includes("auto copy");
+  }
+
+  function normalizePlan(plan) {
+    const price = pPrice(plan);
+    return {
+      ...plan,
+      key: plan.key || plan.plan || plan.code || plan.name,
+      plan: plan.plan || plan.key || plan.code,
+      code: plan.code || plan.key || plan.plan,
+      name: plan.name || plan.label || plan.key || "Plan",
+      label: plan.label || plan.name || "Plan",
+      price,
+      price_usd: price,
+      price_usdt: price,
+      amount_usd: price,
+      amount_usdt: price,
+      monthly_equivalent: pMonthly(plan),
+      auto_copy: Boolean(plan.auto_copy) || isAutoPlan(plan),
+    };
+  }
+
+  async function loadPlans() {
+    setErr("");
+    try {
+      const res = await fetch(`${Connection_URL}/api/subscription/plans`, { credentials: "include" });
+      const data = await res.json();
+
+      const merged = [
+        ...(Array.isArray(data?.plans) ? data.plans : []),
+        ...(Array.isArray(data?.auto_copy_plans) ? data.auto_copy_plans : []),
+      ];
+
+      const rawPlans = Array.isArray(data?.all_plans) && data.all_plans.length ? data.all_plans : merged;
+      const normalized = rawPlans.map(normalizePlan).filter(x => x.key && pPrice(x) > 0);
+
+      const seen = new Set();
+      const unique = normalized.filter(x => {
+        const k = String(x.key);
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+
+      setPlans(unique);
+    } catch (e) {
+      setErr("Cannot load subscription plans.");
+    }
+  }
+
+  async function loadMe() {
     try {
       const res = await fetch(`${Connection_URL}/api/auth/me`, { credentials: "include" });
       const data = await res.json();
       if (res.ok && data.success && data.user) {
         localStorage.setItem("shaaban_user", JSON.stringify(data.user));
         onUserUpdate?.(data.user);
-        setMsg(data.user.is_vip ? "VIP access is active." : "Payment is still pending confirmation.");
+        setMsg("Access refreshed.");
+      } else {
+        setErr("Please login again to refresh access.");
       }
-    } catch {}
-  }, [onUserUpdate]);
+    } catch (e) {
+      setErr("Cannot refresh access.");
+    }
+  }
 
   useEffect(() => {
-    fetch(`${Connection_URL}/api/subscription/plans`, { credentials: "include" })
-      .then(r => r.json())
-      .then(d => setPlans(d?.plans || []))
-      .catch(() => setErr("Cannot load subscription plans."));
+    loadPlans();
   }, []);
 
   async function pay(planKey) {
+    setBusyPlan(planKey);
     setErr("");
     setMsg("");
-    setBusyPlan(planKey);
+
     try {
+      const plan = plans.find(x => String(x.key) === String(planKey));
+      const sendPlan = plan?.key || plan?.plan || plan?.code || planKey;
+
       const res = await fetch(`${Connection_URL}/api/subscription/create-invoice`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planKey }),
+        body: JSON.stringify({
+          plan: sendPlan,
+          plan_key: sendPlan,
+          code: plan?.code || sendPlan,
+          amount_usd: pPrice(plan),
+          email: user?.email || "",
+          name: user?.name || user?.username || "SHAABAN user"
+        }),
       });
+
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Cannot create payment invoice");
-      if (!data.invoice_url) throw new Error("NOWPayments invoice URL was not returned");
-      window.location.href = data.invoice_url;
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || "Cannot create payment invoice");
+      }
+
+      const url = data.invoice_url || data.invoiceUrl || data.url || data.payment_url || data.paymentUrl;
+      if (!url) throw new Error("NOWPayments invoice URL was not returned");
+
+      window.location.href = url;
     } catch (e) {
-      setErr(e.message || "Payment error");
+      setErr(e.message || "Cannot create payment invoice");
     } finally {
       setBusyPlan("");
     }
   }
 
-  const order = ["monthly", "quarterly", "six_months", "yearly", "auto_monthly", "auto_quarterly", "auto_six_months", "auto_yearly"];
-  const sortedPlans = [...plans].sort((a,b) => order.indexOf(a.key) - order.indexOf(b.key));
-  const isVip = isVipUser(user);
+  const order = ["monthly", "quarterly", "yearly", "auto_monthly", "auto_quarterly", "auto_yearly"];
+  const sortedPlans = [...plans].sort((a, b) => {
+    const ai = order.indexOf(String(a.key));
+    const bi = order.indexOf(String(b.key));
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+  const vipPlans = sortedPlans.filter(p => !isAutoPlan(p));
+  const autoPlans = sortedPlans.filter(p => isAutoPlan(p));
+
+  function PlanCard({ p }) {
+    const auto = isAutoPlan(p);
+    const price = pPrice(p);
+    const monthly = pMonthly(p);
+    const best = String(p.key).includes("yearly") || String(p.key).includes("365");
+
+    return (
+      <div className={`planCard proPlanCard ${best ? "best" : ""} ${auto ? "autoPlanCard" : ""}`} key={p.key}>
+        <div className="planTopline">
+          <span>{p.label || (auto ? "Auto Copy Pro" : "VIP")}</span>
+          {best && <em>Best Value</em>}
+        </div>
+
+        <h3>{p.name}</h3>
+        <div className="planPrice">${price.toFixed(0)}</div>
+        <p>{p.days || 30} days access · ≈ ${monthly.toFixed(2)} / month</p>
+
+        <ul className="planFeatureList">
+          <li>✅ All VIP signals unlocked</li>
+          <li>✅ Entry, SL, targets and status</li>
+          <li>✅ Push notifications for TP updates</li>
+          <li>✅ Free preview limits removed</li>
+          {auto && <li>🤖 Auto Copy Pro access included</li>}
+          {auto && <li>🛡️ Stop Loss always ON</li>}
+          {auto && <li>🔐 Binance Spot copy settings</li>}
+        </ul>
+
+        <button className="primary" onClick={() => pay(p.key)} disabled={!!busyPlan}>
+          {busyPlan === p.key ? "Opening payment..." : "Pay with Crypto"}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <section className="subscribePage subscribePro">
       <div className="subscribeHero upgraded">
         <span className="eyebrow">● SHAABAN VIP ACCESS</span>
-        <h2>{isVip ? "Your VIP access is active" : "Choose your VIP plan"}</h2>
+        <h2>{isVip ? "Your subscription" : "Choose your VIP plan"}</h2>
         <p>{isVip ? `Active until: ${formatDate(user?.subscription_expires_at)}` : "Unlock every approved signal, entry, stop loss, target tracking, and VIP push alerts."}</p>
         <div className="riskNote">⚠️ Signals are educational market alerts, not financial advice. Always manage risk and trade with money you can afford to lose.</div>
         <div className="subscribeHeroActions">
           <button className="clear" onClick={loadMe}>Refresh Access</button>
-          {!isVip && <span>Payments are processed securely by NOWPayments.</span>}
         </div>
+        <span>Payments are processed securely by NOWPayments.</span>
       </div>
 
       {err && <div className="error">{err}</div>}
@@ -963,35 +1092,17 @@ function SubscribePanel({ user, onUserUpdate }) {
 
       <h3 className="plansSectionTitle">VIP Signal Plans</h3>
       <div className="planGrid proPlans">
-        {sortedPlans.map((p) => {
-          const monthly = p.days ? (Number(p.price_usd) / (Number(p.days) / 30)) : Number(p.price_usd);
-          const isAuto = Boolean(p.auto_copy) || String(p.key).startsWith("auto_");
-          const best = p.key === "yearly" || p.key === "auto_yearly";
-          return (
-            <div className={`planCard proPlanCard ${best ? "best" : ""}`} key={p.key}>
-              <div className="planTopline"><span>{planBadge(p.key)}</span>{planSavings(p.key, p.price_usd) && <em>{planSavings(p.key, p.price_usd)}</em>}</div>
-              <h3>{p.label}</h3>
-              <strong>${Number(p.price_usd).toFixed(0)}</strong>
-              <small>{p.days} days access · ≈ ${monthly.toFixed(1)} / month</small>
-              <ul className="planFeatureList">
-                <li>✅ All VIP signals unlocked</li>
-                <li>✅ Entry, SL, targets and status</li>
-                <li>✅ Push notifications for TP updates</li>
-                <li>✅ Free preview limits removed</li>
-                {isAuto && <li>🤖 Auto Copy Pro access included</li>}
-                {isAuto && <li>🛡️ Stop Loss always ON</li>}
-              </ul>
-              <button className="primary" onClick={() => pay(p.key)} disabled={!!busyPlan}>
-                {busyPlan === p.key ? "Opening payment..." : "Pay with Crypto"}
-              </button>
-            </div>
-          );
-        })}
+        {vipPlans.length ? vipPlans.map(p => <PlanCard p={p} key={p.key} />) : <div className="empty small">No VIP plans available.</div>}
+      </div>
+
+      <h3 className="plansSectionTitle">Auto Copy Pro Plans</h3>
+      <div className="planGrid proPlans">
+        {autoPlans.length ? autoPlans.map(p => <PlanCard p={p} key={p.key} />) : <div className="empty small">No Auto Copy plans available.</div>}
       </div>
 
       <div className="subscribeNote proNote">
         <b>How it works</b>
-        <span>Choose a plan → pay with crypto → NOWPayments confirms the transaction → VIP access activates automatically. Use Refresh Access if blockchain confirmation takes a few minutes.</span>
+        <span>Choose a plan → pay with crypto → NOWPayments confirms the transaction → access activates automatically. Use Refresh Access if blockchain confirmation takes a few minutes.</span>
       </div>
     </section>
   );
