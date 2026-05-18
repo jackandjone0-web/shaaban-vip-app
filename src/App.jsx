@@ -1127,7 +1127,7 @@ function normalizeCopySettings(payload) {
   };
 }
 
-function AutoCopyPanel({ user, freeModeActive }) {
+function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -1236,7 +1236,7 @@ function AutoCopyPanel({ user, freeModeActive }) {
               <span>✅ After subscribing, you can enable Auto Copy again.</span>
             </div>
             <button className="primary bigEnable" onClick={() => {
-              window.location.hash = "subscribe";
+              onUpgrade ? onUpgrade() : (window.location.hash = "subscribe");
               window.dispatchEvent(new HashChangeEvent("hashchange"));
             }}>Upgrade to Auto Copy Pro</button>
           </div>
@@ -1922,7 +1922,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
 
         {tab === "subscribe" && !freeModeActive && <SubscribePanel user={user} onUserUpdate={onUserUpdate} />}
 
-        {tab === "autoCopy" && <AutoCopyPanel user={user} freeModeActive={freeModeActive} />}
+        {tab === "autoCopy" && <AutoCopyPanel user={user} freeModeActive={freeModeActive} onUpgrade={() => openTab("subscribe")} />}
 
         {tab === "profile" && (
           <section className="centerPage">
