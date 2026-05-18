@@ -99,12 +99,15 @@ function safeTimeMs(v) {
 }
 
 function timeAgo(ts) {
-  if (!ts) return "—";
-  const m = Math.max(0, Math.floor((Date.now() - Number(ts)) / 60000));
+  const t = safeTimeMs(ts);
+  if (!t) return "—";
+
+  const m = Math.max(0, Math.floor((Date.now() - t) / 60000));
   const h = Math.floor(m / 60);
   const d = Math.floor(h / 24);
-  if (d) return `${d}d ago`;
-  if (h) return `${h}h ago`;
+
+  if (d > 0) return `${d}d ago`;
+  if (h > 0) return `${h}h ago`;
   return `${m}m ago`;
 }
 
