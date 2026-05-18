@@ -138,6 +138,20 @@ function isAdminUser(user) {
   return userRole(user) === "ADMIN";
 }
 
+function planPriceValue(plan) {
+  const v = plan?.price ?? plan?.price_usdt ?? plan?.price_usd ?? plan?.amount_usd ?? plan?.amount_usdt ?? plan?.amount;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function planMonthlyValue(plan) {
+  const m = Number(plan?.monthly_equivalent);
+  if (Number.isFinite(m) && m > 0) return m;
+  const price = planPriceValue(plan);
+  const days = Number(plan?.days || 30);
+  return days > 0 ? Math.round((price / (days / 30)) * 100) / 100 : price;
+}
+
 function hasAutoCopyAccess(user, freeModeActive) {
   const role = userRole(user);
   const plan = String(user?.plan || user?.subscription_plan || user?.active_plan || "").toLowerCase();
@@ -1434,7 +1448,12 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       }
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await parseApiJson(res);
-      const list = Array.isArray(data) ? data : (Array.isArray(data.signals) ? data.signals : []); setSignals(list);
+      const rawList = Array.isArray(data) ? data : (Array.isArray(data.signals) ? data.signals : []);
+      const lockedList = rawList.map(s => ({
+        ...s,
+        locked: (!freeModeActive && !vipAccess && !s.is_free_preview)
+      }));
+      setSignals(lockedList);
       signalsRef.current = Array.isArray(data) ? data : [];
       setApiOnline(true);
       setErr("");
