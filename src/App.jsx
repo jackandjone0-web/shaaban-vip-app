@@ -89,6 +89,15 @@ function change(entry, target) {
   return `${x >= 0 ? "+" : ""}${x.toFixed(2)}%`;
 }
 
+
+function safeTimeMs(v) {
+  if (v === null || v === undefined || v === "") return 0;
+  const n = Number(v);
+  if (Number.isFinite(n) && n > 0) return n < 10000000000 ? n * 1000 : n;
+  const parsed = Date.parse(String(v));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function timeAgo(ts) {
   if (!ts) return "—";
   const m = Math.max(0, Math.floor((Date.now() - Number(ts)) / 60000));
@@ -1597,7 +1606,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     const hit = signals.filter(x => stageOf(x) > 0).length;
     const closed = signals.filter(x => x.status === "stopped").length;
     const today = signals.filter(x => {
-      const t = Number(x.created_at || x.updated_at || x.closed_at || 0);
+      const t = safeTimeMs(x.created_at || x.updated_at || x.closed_at || x.last_tp_update_ts || 0);
       return t && Date.now() - t < 24 * 60 * 60 * 1000;
     }).length;
     return { active, hit, closed, today, total: signals.length };
@@ -1624,8 +1633,8 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     arr.sort((a,b) => {
       if (sort === "score") return Number(b.score || 0) - Number(a.score || 0);
       if (sort === "confidence") return Number(b.confidence || 0) - Number(a.confidence || 0);
-      if (sort === "oldest") return Number(a.created_at || 0) - Number(b.created_at || 0);
-      return Number(b.created_at || 0) - Number(a.created_at || 0);
+      if (sort === "oldest") return safeTimeMs(a.created_at || a.updated_at || a.closed_at || a.last_tp_update_ts) - safeTimeMs(b.created_at || b.updated_at || b.closed_at || b.last_tp_update_ts);
+      return safeTimeMs(b.created_at || b.updated_at || b.closed_at || b.last_tp_update_ts) - safeTimeMs(a.created_at || a.updated_at || a.closed_at || a.last_tp_update_ts);
     });
 
     return arr;
