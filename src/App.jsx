@@ -961,6 +961,7 @@ function SubscribePanel({ user, onUserUpdate }) {
       {err && <div className="error">{err}</div>}
       {msg && <div className="successBox">{msg}</div>}
 
+      <h3 className="plansSectionTitle">VIP Signal Plans</h3>
       <div className="planGrid proPlans">
         {sortedPlans.map((p) => {
           const monthly = p.days ? (Number(p.price_usd) / (Number(p.days) / 30)) : Number(p.price_usd);
@@ -1123,7 +1124,10 @@ function AutoCopyPanel({ user, freeModeActive }) {
               <span>🔐 Binance keys stay saved if they were connected before.</span>
               <span>✅ After subscribing, you can enable Auto Copy again.</span>
             </div>
-            <button className="primary bigEnable" onClick={() => window.location.hash = "subscribe"}>Upgrade to Auto Copy Pro</button>
+            <button className="primary bigEnable" onClick={() => {
+              window.location.hash = "subscribe";
+              window.dispatchEvent(new HashChangeEvent("hashchange"));
+            }}>Upgrade to Auto Copy Pro</button>
           </div>
           <div className="panel autoPanel pausedAccessCard">
             <h3>الحالة بالعربي</h3>
