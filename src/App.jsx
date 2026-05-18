@@ -1373,6 +1373,7 @@ function SecuritySessionsPanel() {
 
 function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [signals, setSignals] = useState([]);
+  const [signalsAccessLocked, setSignalsAccessLocked] = useState(false);
   const [filter, setFilter] = useState("active");
   const [tab, setTab] = useState("board");
   const [search, setSearch] = useState("");
@@ -1563,6 +1564,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       }
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await parseApiJson(res);
+      setSignalsAccessLocked(data && data.access_allowed === false);
       const rawList = Array.isArray(data) ? data : (Array.isArray(data.signals) ? data.signals : []);
       const lockedList = rawList.map(s => ({
         ...s,
