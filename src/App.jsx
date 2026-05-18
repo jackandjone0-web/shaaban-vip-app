@@ -1374,6 +1374,7 @@ function SecuritySessionsPanel() {
 function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [signals, setSignals] = useState([]);
   const [signalsAccessLocked, setSignalsAccessLocked] = useState(false);
+  const [publicStats, setPublicStats] = useState(null);
   const [filter, setFilter] = useState("active");
   const [tab, setTab] = useState("board");
   const [search, setSearch] = useState("");
@@ -1395,6 +1396,16 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [pushBusy, setPushBusy] = useState(false);
   const [platformSettings, setPlatformSettings] = useState({ free_mode: false, banner_title: "", banner_text: "" });
   const signalsRef = useRef([]);
+
+  async function loadPublicStats() {
+    try {
+      const res = await fetch(Connection_URL + "/api/public/stats", { credentials: "include" });
+      const data = await parseApiJson(res);
+      if (res.ok && data.success) setPublicStats(data);
+    } catch (e) {
+      // Keep VIP dashboard usable if stats endpoint is temporarily unavailable.
+    }
+  }
   const loadRef = useRef({ inFlight: false, lastAt: 0 });
   const retryTimerRef = useRef(null);
   const sseRef = useRef(null);
@@ -1571,6 +1582,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
         locked: (!freeModeActive && !vipAccess && !s.is_free_preview)
       }));
       setSignals(lockedList);
+      loadPublicStats();
       signalsRef.current = Array.isArray(data) ? data : [];
       setApiOnline(true);
       setErr("");
@@ -1748,8 +1760,14 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       const t = safeTimeMs(x.created_at || x.updated_at || x.closed_at || x.last_tp_update_ts || 0);
       return t && Date.now() - t < 24 * 60 * 60 * 1000;
     }).length;
-    return { active, hit, closed, today, total: signals.length };
-  }, [signals]);
+    return {
+      active: Number(publicStats?.open ?? active),
+      hit: Number(publicStats?.targets_hit_total ?? hit),
+      closed: Number(publicStats?.sl_no_target ?? closed),
+      today,
+      total: Number(publicStats?.total_signals ?? signals.length),
+    };
+  }, [signals, publicStats]);
 
   const market = useMemo(() => {
     if (stats.active >= 6) return { icon:"🟢", title:"Active Market", text:"Multiple live approved opportunities." };
@@ -1862,7 +1880,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
             <section className="stats">
               <Stat label="Open Trades" value={stats.active} tone="blueText" active={filter === "active"} onClick={() => setFilter("active")} />
               <Stat label="Targets Hit" value={stats.hit} tone="greenText" active={filter === "hit"} onClick={() => setFilter("hit")} />
-              <Stat label="Closed / SL" value={stats.closed} tone="redText" active={filter === "closed"} onClick={() => setFilter("closed")} />
+              <Stat label="SL / No Target" value={stats.closed} tone="redText" active={filter === "closed"} onClick={() => setFilter("closed")} />
               <Stat label="Total Signals" value={stats.total} tone="goldText" active={filter === "all"} onClick={() => setFilter("all")} />
             </section>
 
@@ -1871,7 +1889,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
                 <button className={filter==="active" ? "on" : ""} onClick={() => setFilter("active")}>Open</button>
                 <button className={filter==="all" ? "on" : ""} onClick={() => setFilter("all")}>All</button>
                 <button className={filter==="hit" ? "on" : ""} onClick={() => setFilter("hit")}>Targets Hit</button>
-                <button className={filter==="closed" ? "on" : ""} onClick={() => setFilter("closed")}>Closed</button>
+                <button className={filter==="closed" ? "on" : ""} onClick={() => setFilter("closed")}>SL / No Target</button>
               </div>
               <div className="tools">
                 <input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search coin..." />
