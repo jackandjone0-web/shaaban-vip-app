@@ -1776,7 +1776,16 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }, [stats.active]);
 
   const list = useMemo(() => {
-    let arr = [...signals];
+    const historyTargets = Array.isArray(publicStats?.target_signals) ? publicStats.target_signals : [];
+    const historyClosed = Array.isArray(publicStats?.sl_no_target_signals) ? publicStats.sl_no_target_signals : [];
+
+    let arr = filter === "hit"
+      ? historyTargets
+      : filter === "closed"
+        ? historyClosed
+        : filter === "all"
+          ? [...signals, ...historyTargets, ...historyClosed]
+          : [...signals];
 
     if (filter === "active") arr = arr.filter(x => x._board_source === "open" || x.status === "active");
     if (filter === "hit") arr = arr.filter(x => String(x.status || "").startsWith("tp") || x.tp1_hit || x.tp2_hit || x.tp3_hit || x.tp4_hit || Number(x.last_tp_update_stage || x.highest_tp_stage || 0) > 0);
@@ -1795,7 +1804,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
     });
 
     return arr;
-  }, [signals, filter, search, sort]);
+  }, [signals, filter, search, sort, publicStats]);
 
   return (
     <div className={`dashboard ${theme === "light" ? "lightMode" : ""}`}>
