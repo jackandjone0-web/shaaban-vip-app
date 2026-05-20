@@ -537,3 +537,95 @@
     grid-template-columns: 1fr;
   }
 }
+
+.binanceIpGuide {
+  margin: 14px 0 16px;
+  padding: 14px;
+  border: 1px solid rgba(245, 181, 62, 0.22);
+  border-radius: 18px;
+  background: rgba(245, 181, 62, 0.06);
+}
+
+.ipGuideHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ipGuideHead div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ipGuideHead b {
+  font-size: 15px;
+}
+
+.ipGuideHead span {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.ipGuideHead button {
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ipBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.18);
+  margin-bottom: 12px;
+}
+
+.ipBox span {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.ipBox strong {
+  font-size: 18px;
+  letter-spacing: 0.5px;
+}
+
+.ipSteps {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ipSteps b {
+  margin-bottom: 3px;
+}
+
+.ipWarning {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 80, 80, 0.10);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .ipGuideHead,
+  .ipBox {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ipBox strong {
+    font-size: 16px;
+  }
+}

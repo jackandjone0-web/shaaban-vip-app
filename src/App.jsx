@@ -1194,6 +1194,16 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
     finally { setBusy(false); }
   }
 
+  function copyServerIp() {
+    const ip = settings.server_ip || "146.190.239.21";
+    try {
+      navigator.clipboard.writeText(ip);
+      setMsg("Server IP copied. Paste it inside Binance trusted IPs.");
+    } catch (_) {
+      setMsg("Server IP: " + ip);
+    }
+  }
+
   async function saveSettings(nextEnabled = form.enabled) {
     setBusy(true); setErr(""); setMsg("");
     try {
@@ -1321,7 +1331,36 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
 
 <div className="panel autoPanel">
           <h3>1. Connect Binance Spot</h3>
-          <p className="mutedText">Withdraw permission must be OFF. Add server IP to Binance whitelist: <b>{settings.server_ip || "check server IP"}</b></p>
+          <p className="mutedText">Withdraw permission must be OFF. Add the SHAABAN server IP to Binance whitelist before enabling Spot Trading.</p>
+
+          <div className="binanceIpGuide">
+            <div className="ipGuideHead">
+              <div>
+                <b>📍 Binance IP Whitelist Guide</b>
+                <span>Add this IP inside Binance trusted IPs.</span>
+              </div>
+              <button type="button" onClick={copyServerIp}>Copy IP</button>
+            </div>
+
+            <div className="ipBox">
+              <span>SHAABAN Auto Copy Server IP</span>
+              <strong>{settings.server_ip || "146.190.239.21"}</strong>
+            </div>
+
+            <div className="ipSteps">
+              <b>How to add it:</b>
+              <span>1️⃣ Binance → API Management</span>
+              <span>2️⃣ Choose API Key → Edit restrictions</span>
+              <span>3️⃣ Select: Restrict access to trusted IPs only</span>
+              <span>4️⃣ Paste the server IP above</span>
+              <span>5️⃣ Save / Confirm with 2FA</span>
+              <span>6️⃣ Enable Reading + Spot & Margin Trading</span>
+            </div>
+
+            <div className="ipWarning">
+              ⚠️ Keep Withdrawals, Futures, Margin Loan/Transfer and Universal Transfer OFF.
+            </div>
+          </div>
           <form onSubmit={connectBinance} className="copyForm">
             <input value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="Binance API Key" />
             <input value={apiSecret} onChange={e=>setApiSecret(e.target.value)} placeholder="Binance Secret Key" type="password" />
