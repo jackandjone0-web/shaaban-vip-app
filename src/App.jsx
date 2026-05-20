@@ -1314,7 +1314,38 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
           </form>
           <div className="safetyList"><span>✅ Spot Trading only</span><span>❌ Withdraw permission must be OFF</span><span>🛡️ Stop Loss always ON</span></div>
         </div>
-        <div className="panel autoPanel">
+                <div className="panel autoPanel">
+          <h3>✅ Auto Copy Readiness Checklist</h3>
+          <div className="copyChecklist">
+            <div className={binanceConnected ? "checkItem ok" : "checkItem warn"}>
+              <b>{binanceConnected ? "✅" : "⚠️"} Binance API Connected</b>
+              <span>{binanceConnected ? "Your Binance Spot API key is connected." : "Connect Binance before enabling Auto Copy."}</span>
+            </div>
+            <div className="checkItem ok">
+              <b>🛡️ Stop Loss Always ON</b>
+              <span>Every copied trade keeps SL protection active.</span>
+            </div>
+            <div className="checkItem warn">
+              <b>🚫 Withdrawals Must Be OFF</b>
+              <span>Never enable withdrawal permission on your Binance API key.</span>
+            </div>
+            <div className="checkItem warn">
+              <b>📍 IP Restriction Recommended</b>
+              <span>Whitelist the server IP shown above for stronger protection.</span>
+            </div>
+            <div className={Number(form.trade_amount_usdt || 0) > 0 ? "checkItem ok" : "checkItem warn"}>
+              <b>{Number(form.trade_amount_usdt || 0) > 0 ? "✅" : "⚠️"} Trade Amount Set</b>
+              <span>Current amount: {form.trade_amount_usdt || "--"} USDT per copied trade.</span>
+            </div>
+            <div className={Number(form.max_open_trades || 0) > 0 ? "checkItem ok" : "checkItem warn"}>
+              <b>{Number(form.max_open_trades || 0) > 0 ? "✅" : "⚠️"} Max Open Trades Set</b>
+              <span>Current max open trades: {form.max_open_trades || "--"}.</span>
+            </div>
+          </div>
+          <p className="mutedText">Auto Copy will only run after Binance is connected and you manually enable it. You can turn it OFF anytime.</p>
+        </div>
+
+<div className="panel autoPanel">
           <h3>2. Copy Settings</h3>
           <div className="copySettingsGrid">
             <label>Trade Amount per Signal<input type="number" min="10" step="1" value={form.trade_amount_usdt} onChange={e=>setForm({...form, trade_amount_usdt:e.target.value})} /></label>
