@@ -1129,6 +1129,7 @@ function normalizeCopySettings(payload) {
 
 function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
   const [data, setData] = useState(null);
+  const [binanceStatus, setBinanceStatus] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -1145,9 +1146,18 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
     return Math.max(1, Math.min(Number(settings.hard_max_open_trades || 7), Math.floor(capital / amount)));
   }, [form.trade_amount_usdt, form.max_capital_usdt, settings.hard_max_open_trades]);
 
+  async function loadBinanceStatus() {
+    try {
+      const res = await fetch(`${Connection_URL}/api/copy/binance/status`, { credentials: "include" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.success) setBinanceStatus(d);
+    } catch (_) {}
+  }
+
   async function load() {
     setBusy(true); setErr("");
     try {
+      await loadBinanceStatus();
       const res = await fetch(`${Connection_URL}/api/copy/settings`, { credentials: "include" });
       const d = await res.json();
       if (!res.ok || !d.success) {
@@ -1206,6 +1216,10 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
 
   const effectiveEnabled = Boolean(settings.effective_enabled ?? (settings.enabled && access));
   const pausedBySubscription = Boolean((data?.paused || settings.paused || (settings.enabled && !access)) && !effectiveEnabled);
+  const bs = binanceStatus?.binance || {};
+  const cs = binanceStatus?.copy_settings || {};
+  const binanceConnected = Boolean(bs.connected || settings.binance_connected);
+  const keyStatus = bs.status || (binanceConnected ? "active" : "not_connected");
 
   if (!access) {
     return (
@@ -1264,7 +1278,33 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
       {pausedBySubscription && <div className="copyPausedBanner">⏸️ Auto Copy paused — subscription required. No new Binance trades will be copied, and your Binance connection stays saved.</div>}
       {err && <div className="error">{err}</div>}{msg && <div className="successBox">{msg}</div>}
       <div className="autoCopyGrid">
-        <div className="panel autoPanel">
+                <div className="panel autoPanel">
+          <h3>🔐 Binance Auto Copy Status</h3>
+          <div className="copySettingsGrid">
+            <div className={binanceConnected ? "computedBox ready" : "computedBox"}>
+              <span>Binance</span>
+              <b className={binanceConnected ? "greenText" : "goldText"}>{binanceConnected ? "Connected" : "Not Connected"}</b>
+              <small>{bs.api_key_preview || "No API key connected"}</small>
+            </div>
+            <div className="computedBox">
+              <span>Key Status</span>
+              <b>{String(keyStatus).toUpperCase()}</b>
+              <small>Secret is never shown</small>
+            </div>
+            <div className="computedBox">
+              <span>Auto Copy</span>
+              <b className={effectiveEnabled ? "greenText" : "goldText"}>{effectiveEnabled ? "ON" : "OFF"}</b>
+              <small>{settings.paused_reason || cs.paused_reason || "User controlled"}</small>
+            </div>
+            <div className="computedBox">
+              <span>Trade Amount</span>
+              <b>{cs.trade_amount_usdt || settings.trade_amount_usdt || form.trade_amount_usdt || "--"} USDT</b>
+              <small>Max open: {cs.max_open_trades || settings.max_open_trades || form.max_open_trades || "--"}</small>
+            </div>
+          </div>
+        </div>
+
+<div className="panel autoPanel">
           <h3>1. Connect Binance Spot</h3>
           <p className="mutedText">Withdraw permission must be OFF. Add server IP to Binance whitelist: <b>{settings.server_ip || "check server IP"}</b></p>
           <form onSubmit={connectBinance} className="copyForm">
