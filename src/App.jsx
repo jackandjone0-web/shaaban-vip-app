@@ -1220,6 +1220,9 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
   const cs = binanceStatus?.copy_settings || {};
   const binanceConnected = Boolean(bs.connected || settings.binance_connected);
   const keyStatus = bs.status || (binanceConnected ? "active" : "not_connected");
+  const safety = binanceStatus?.safety || {};
+  const userEmergencyStop = String(safety.emergency_stop || "0") === "1";
+  const globalCopyOn = String(safety.auto_copy_global_enabled || "1") === "1";
 
   if (!access) {
     return (
@@ -1274,6 +1277,18 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
           {!effectiveEnabled && <em>Not a button</em>}
         </div>
       </div>
+      {userEmergencyStop && (
+        <div className="copyPausedBanner danger">
+          🔴 <b>Auto Copy Emergency Stop Active</b>
+          <span>{safety.emergency_stop_reason || "New BUY copy jobs are blocked by admin. SELL / Manual Close remains allowed for protection."}</span>
+        </div>
+      )}
+      {!globalCopyOn && !userEmergencyStop && (
+        <div className="copyPausedBanner">
+          ⚠️ Auto Copy is temporarily disabled by admin. No new BUY jobs will be copied.
+        </div>
+      )}
+
       {freeModeActive && <div className="copyFreeBanner">🎁 Free Mode Active — Auto Copy Pro access is open. It only runs if you enable it yourself.</div>}
       {pausedBySubscription && <div className="copyPausedBanner">⏸️ Auto Copy paused — subscription required. No new Binance trades will be copied, and your Binance connection stays saved.</div>}
       {err && <div className="error">{err}</div>}{msg && <div className="successBox">{msg}</div>}
