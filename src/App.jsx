@@ -1338,8 +1338,8 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
               <span>Current amount: {form.trade_amount_usdt || "--"} USDT per copied trade.</span>
             </div>
             <div className={Number(form.max_open_trades || 0) > 0 ? "checkItem ok" : "checkItem warn"}>
-              <b>{Number(form.max_open_trades || 0) > 0 ? "✅" : "⚠️"} Max Open Trades Set</b>
-              <span>Current max open trades: {form.max_open_trades || "--"}.</span>
+              <b>{Number(calcMaxOpen || 0) > 0 ? "✅" : "⚠️"} Max Open Trades Set</b>
+              <span>Current max open trades: {calcMaxOpen || "--"}.</span>
             </div>
           </div>
           <p className="mutedText">Auto Copy will only run after Binance is connected and you manually enable it. You can turn it OFF anytime.</p>
