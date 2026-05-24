@@ -1446,7 +1446,7 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
             <input value={apiSecret} onChange={e=>setApiSecret(e.target.value)} placeholder="Binance Secret Key" type="password" />
             <button className="primary" disabled={busy}>{settings.binance_connected ? "Re-Verify / Update Key" : "Verify Binance Connection"}</button>
 
-            {(typeof binance !== "undefined" && binance?.connected) && (
+            {binanceConnected && (
               <button
                 type="button"
                 className="dangerOutlineBtn"
