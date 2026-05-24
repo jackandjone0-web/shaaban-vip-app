@@ -1737,10 +1737,6 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }
 
   async function enableNotifications() {
-    if (isIOSDevice() && !isStandalonePWA()) {
-      addNotice("iPhone: ???? ?????? ?? Safari ?? Share ?? Add to Home Screen? ????? ????? ?? ???????? ???? ?????????., closed, ??);
- return;
- }
     setPushBusy(true);
     try {
       if (!pushSupported()) {
@@ -2288,7 +2284,6 @@ export default function App() {
   if (screen === "login") return <Login onLogin={(u) => { setUser(u); setShowWelcome(true); }} theme={theme} toggleTheme={toggleTheme} onBack={() => setScreen("landing")} />;
   return <Landing theme={theme} toggleTheme={toggleTheme} onLogin={() => setScreen("login")} />;
 }
-
 
 
 
