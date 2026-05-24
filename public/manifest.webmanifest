@@ -1,0 +1,19 @@
+{
+  "name": "SHAABAN Signals",
+  "short_name": "SHAABAN",
+  "description": "SHAABAN Signals VIP Dashboard",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080b12",
+  "theme_color": "#f5b53e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/shaaban-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

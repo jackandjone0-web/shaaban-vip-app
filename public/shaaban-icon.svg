@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="108" fill="#080b12"/>
+  <circle cx="256" cy="256" r="188" fill="#f5b53e" opacity="0.14"/>
+  <path d="M143 319c40 35 79 52 117 52 64 0 109-38 109-91 0-45-31-71-94-88-39-11-58-20-58-41 0-20 18-34 47-34 35 0 68 14 99 41l31-48c-38-32-82-49-132-49-65 0-111 38-111 94 0 50 34 75 96 92 40 11 56 21 56 40 0 22-19 36-50 36-39 0-76-17-110-51l-36 47z" fill="#f5b53e"/>
+  <text x="256" y="444" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#ffffff">SHAABAN</text>
+</svg>

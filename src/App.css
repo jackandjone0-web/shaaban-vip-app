@@ -689,3 +689,44 @@
 .dangerOutlineBtn:hover {
   background: rgba(255, 80, 80, 0.16) !important;
 }
+.installAppBox {
+  margin: 12px 0 14px;
+  padding: 13px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 181, 62, 0.24);
+  background: rgba(245, 181, 62, 0.07);
+  display: grid;
+  gap: 10px;
+}
+
+.installAppBox div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.installAppBox b {
+  font-size: 15px;
+}
+
+.installAppBox span {
+  font-size: 12px;
+  opacity: 0.78;
+  line-height: 1.45;
+}
+
+.installAppBox button {
+  width: fit-content;
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.installAppBox p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.88;
+}
