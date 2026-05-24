@@ -730,3 +730,14 @@
   line-height: 1.45;
   opacity: 0.88;
 }
+/* Show Install App button on mobile */
+@media (max-width: 620px) {
+  .installBtn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
