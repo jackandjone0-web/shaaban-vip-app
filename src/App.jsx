@@ -1801,7 +1801,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       }));
       setSignals(lockedList);
       loadPublicStats();
-      signalsRef.current = Array.isArray(data) ? data : [];
+      signalsRef.current = lockedList;
       setApiOnline(true);
       setErr("");
       state.lastAt = Date.now();
@@ -2266,6 +2266,7 @@ export default function App() {
   if (screen === "login") return <Login onLogin={(u) => { setUser(u); setShowWelcome(true); }} theme={theme} toggleTheme={toggleTheme} onBack={() => setScreen("landing")} />;
   return <Landing theme={theme} toggleTheme={toggleTheme} onLogin={() => setScreen("login")} />;
 }
+
 
 
 
