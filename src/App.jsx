@@ -815,6 +815,18 @@ function SignalModal({ signal, logos, onClose, user }) {
   );
 }
 
+function isIOSDevice() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function isStandalonePWA() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+}
+
 function Notifications({ open, items, onClose, onClear }) {
   if (!open) return null;
   return (
@@ -1737,6 +1749,11 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }
 
   async function enableNotifications() {
+    if (isIOSDevice() && !isStandalonePWA()) {
+      addNotice("iPhone: Open Safari, tap Share, Add to Home Screen, then open from the app icon and enable notifications.", "closed", "iPhone");
+      return;
+    }
+
     setPushBusy(true);
     try {
       if (!pushSupported()) {
