@@ -1688,13 +1688,26 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }, []);
 
   async function installApp() {
+    const fallbackMessage =
+      "📲 Install SHAABAN App\n\n" +
+      "Android Chrome:\n" +
+      "Tap the browser menu ⋮ then choose Install app or Add to Home screen.\n\n" +
+      "iPhone Safari:\n" +
+      "Tap Share then Add to Home Screen.\n\n" +
+      "If your browser supports direct install, the popup will open now.";
+
     if (!installPrompt) {
-      addNotice("Install option will appear when your browser allows it.", "info", "📱");
+      alert(fallbackMessage);
       return;
     }
-    installPrompt.prompt();
-    await installPrompt.userChoice;
-    setInstallPrompt(null);
+
+    try {
+      installPrompt.prompt();
+      await installPrompt.userChoice;
+      setInstallPrompt(null);
+    } catch (e) {
+      alert(fallbackMessage);
+    }
   }
 
 
