@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 const Connection_URL = "https://api.shaabansignals.online";
@@ -84,7 +84,7 @@ function money(v) {
 function change(entry, target) {
   const e = Number(entry || 0);
   const t = Number(target || 0);
-  if (!e || !t) return "—";
+  if (!e || !t) return "â€”";
   const x = ((t - e) / e) * 100;
   return `${x >= 0 ? "+" : ""}${x.toFixed(2)}%`;
 }
@@ -100,7 +100,7 @@ function safeTimeMs(v) {
 
 function timeAgo(ts) {
   const t = safeTimeMs(ts);
-  if (!t) return "—";
+  if (!t) return "â€”";
 
   const m = Math.max(0, Math.floor((Date.now() - t) / 60000));
   const h = Math.floor(m / 60);
@@ -215,7 +215,7 @@ function Landing({ onLogin, theme, toggleTheme }) {
     <div className={`landing ${theme === "light" ? "lightMode" : ""}`}>
       <nav className="nav">
         <div className="brand">
-          <div className="bolt">⚡</div>
+          <div className="bolt">âš¡</div>
           <div>
             <b>SHAABAN SIGNAL PRO</b>
             <span>VIP MEMBERS AREA</span>
@@ -226,9 +226,9 @@ function Landing({ onLogin, theme, toggleTheme }) {
 
       <main className="landingMain">
         <section className="landingCopy">
-          <span className="eyebrow">● VIP SIGNALS ONLY</span>
+          <span className="eyebrow">â— VIP SIGNALS ONLY</span>
           <h1>A premium signal room built for VIP traders.</h1>
-          <p>Follow VIP opportunities with a polished dashboard, live alerts, target tracking, and clean risk visibility — no copy trading, no auto execution.</p>
+          <p>Follow VIP opportunities with a polished dashboard, live alerts, target tracking, and clean risk visibility â€” no copy trading, no auto execution.</p>
           <div className="landingBtns">
             <button onClick={onLogin}>Enter VIP Dashboard</button>
             <a href="https://t.me/signal252" target="_blank" rel="noreferrer">Join Telegram</a>
@@ -267,9 +267,9 @@ function Landing({ onLogin, theme, toggleTheme }) {
           </div>
 
           <div className="previewMiniList">
-            <div><span>🎯 Target 1</span><b>+5.08%</b></div>
-            <div><span>🛡️ Risk Managed</span><b>Low</b></div>
-            <div><span>⚡ Live Alerts</span><b>On</b></div>
+            <div><span>ðŸŽ¯ Target 1</span><b>+5.08%</b></div>
+            <div><span>ðŸ›¡ï¸ Risk Managed</span><b>Low</b></div>
+            <div><span>âš¡ Live Alerts</span><b>On</b></div>
           </div>
         </section>
       </main>
@@ -489,8 +489,8 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
     return (
       <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
         <div className="loginCard approvalCard">
-          <button className="back" onClick={onBack}>← Back</button>
-          <div className="bigBolt">📩</div>
+          <button className="back" onClick={onBack}>â† Back</button>
+          <div className="bigBolt">ðŸ“©</div>
           <h1>Verify Your Email</h1>
           <p>{pendingMessage || "We sent a 6-digit code to your email."}</p>
           <div className="approvalNote">Email: <b>{verifyEmail}</b><br />Please check Inbox or Spam.</div>
@@ -508,8 +508,8 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
     return (
       <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
         <div className="loginCard approvalCard">
-          <button className="back" onClick={onBack}>← Back</button>
-          <div className="bigBolt">🔐</div>
+          <button className="back" onClick={onBack}>â† Back</button>
+          <div className="bigBolt">ðŸ”</div>
           <h1>Reset Password</h1>
           <p>Enter your account email. We will send a secure reset link.</p>
           <input value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="Email" />
@@ -526,8 +526,8 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
     return (
       <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
         <div className="loginCard approvalCard">
-          <button className="back" onClick={onBack}>← Back</button>
-          <div className="bigBolt">🔑</div>
+          <button className="back" onClick={onBack}>â† Back</button>
+          <div className="bigBolt">ðŸ”‘</div>
           <h1>Set New Password</h1>
           <p>Choose a new password for your account.</p>
           <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password, min 8 characters" />
@@ -544,8 +544,8 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
   return (
     <div className={`loginPage ${theme === "light" ? "lightMode" : ""}`}>
       <div className="loginCard">
-        <button className="back" onClick={onBack}>← Back</button><button className="themeLogin" onClick={toggleTheme}>{theme === "light" ? "Dark" : "Light"}</button>
-        <div className="bigBolt">⚡</div>
+        <button className="back" onClick={onBack}>â† Back</button><button className="themeLogin" onClick={toggleTheme}>{theme === "light" ? "Dark" : "Light"}</button>
+        <div className="bigBolt">âš¡</div>
         <h1>SHAABAN SIGNAL PRO</h1>
         <p>{mode === "login" ? "VIP secure access" : "Create VIP account"}</p>
 
@@ -618,7 +618,7 @@ function UserWatermark({ user }) {
   const username = user?.username ? `@${user.username}` : "SHAABAN VIP";
   const uid = user?.id ? `ID ${user.id}` : "Protected";
   const stamp = new Date().toLocaleDateString();
-  const text = `${username} • ${uid} • ${stamp}`;
+  const text = `${username} â€¢ ${uid} â€¢ ${stamp}`;
   return (
     <div className="watermarkLayer" aria-hidden="true">
       {Array.from({ length: 12 }).map((_, i) => <span key={i}>{text}</span>)}
@@ -674,7 +674,7 @@ function SignalRow({ signal, logos, compact, highlighted, onOpen, isAdmin, onMak
           <CoinLogo symbol={s} logos={logos} />
           <div>
             <b>{s}</b>
-            <span>{signal.pair || `${s}/USDT`} · {timeAgo(signal.created_at)}</span><em className="rowQuality">{Number(signal.score || 0) >= 9 ? "Elite Signal" : Number(signal.score || 0) >= 8 ? "Strong Setup" : "Clean Setup"}</em>{signal.is_free_preview && <em className="freePreviewPill">Free Preview</em>}
+            <span>{signal.pair || `${s}/USDT`} Â· {timeAgo(signal.created_at)}</span><em className="rowQuality">{Number(signal.score || 0) >= 9 ? "Elite Signal" : Number(signal.score || 0) >= 8 ? "Strong Setup" : "Clean Setup"}</em>{signal.is_free_preview && <em className="freePreviewPill">Free Preview</em>}
           </div>
         </div>
 
@@ -693,8 +693,8 @@ function SignalRow({ signal, logos, compact, highlighted, onOpen, isAdmin, onMak
           <div className="expandedTop">
             <Tag text={signal.type} />
             <div className="expandedActions">
-              {isAdmin && !signal.is_free_preview && <button onClick={() => onMakeFreePreview(signal)}>⭐ Make Free Preview</button>}
-              {signal.is_free_preview && <span className="tag green">👁️ Free Preview</span>}
+              {isAdmin && !signal.is_free_preview && <button onClick={() => onMakeFreePreview(signal)}>â­ Make Free Preview</button>}
+              {signal.is_free_preview && <span className="tag green">ðŸ‘ï¸ Free Preview</span>}
               <button onClick={() => onOpen(signal)}>Open full view</button>
             </div>
           </div>
@@ -732,20 +732,20 @@ function LockedSignalRow({ signal, compact }) {
           <div className="coinFallback">VIP</div>
           <div>
             <b>VIP Signal Locked</b>
-            <span>Approved setup · {age}</span>
+            <span>Approved setup Â· {age}</span>
             <em className="rowQuality">Upgrade to unlock coin, entry, SL and targets</em>
           </div>
         </div>
         <div className="cell hideMobile"><span>Entry</span><b>VIP Only</b></div>
         <div className="cell hideTablet"><span>Targets</span><b>Locked</b><em>Full access required</em></div>
         <div className="cell hideTablet"><span>Score</span><b>VIP</b></div>
-        <div className="progress lockedProgress"><i>🔒</i><i>🔒</i><i>🔒</i><i>🔒</i></div>
+        <div className="progress lockedProgress"><i>ðŸ”’</i><i>ðŸ”’</i><i>ðŸ”’</i><i>ðŸ”’</i></div>
         <div className="statusBox">
           <strong className="status locked">VIP Only</strong>
           <small>Subscribe to view</small>
         </div>
       </div>
-      <div className="lockedOverlayText">🔒 This signal is locked for VIP members</div>
+      <div className="lockedOverlayText">ðŸ”’ This signal is locked for VIP members</div>
     </div>
   );
 }
@@ -767,10 +767,10 @@ function SignalModal({ signal, logos, onClose, user }) {
             <CoinLogo symbol={s} logos={logos} />
             <div>
               <b>{s}</b>
-              <span>{signal.pair || `${s}/USDT`} · {statusLabel(signal.status)}</span>
+              <span>{signal.pair || `${s}/USDT`} Â· {statusLabel(signal.status)}</span>
             </div>
           </div>
-          <button onClick={onClose}>×</button>
+          <button onClick={onClose}>Ã—</button>
         </div>
 
         <div className="modalSubline"><span>VIP signal tracking</span><b>{statusLabel(signal.status)}</b></div>
@@ -815,12 +815,24 @@ function SignalModal({ signal, logos, onClose, user }) {
   );
 }
 
+function isIOSDevice() {
+  if (typeof navigator === "undefined) return false;
+ return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+ (navigator.platform === MacIntel && navigator.maxTouchPoints > 1);
+}
+
+function isStandalonePWA() {
+ if (typeof window === undefined) return false;
+ return window.matchMedia((display-mode: standalone)).matches ||
+ window.navigator.standalone === true;
+}
+
 function Notifications({ open, items, onClose, onClear }) {
   if (!open) return null;
   return (
     <div className="drawerShade" onClick={onClose}>
       <aside className="drawer" onClick={(e)=>e.stopPropagation()}>
-        <div className="drawerHead"><h3>Notifications</h3><button onClick={onClose}>×</button></div>
+        <div className="drawerHead"><h3>Notifications</h3><button onClick={onClose}>Ã—</button></div>
         <button className="clear" onClick={onClear}>Clear all</button>
         {items.length === 0 ? <div className="empty small">No notifications yet.</div> :
           <div className="notifList">{items.map(x => <div className={`notif ${x.type || ""}`} key={x.id}><b>{x.icon}</b><div><strong>{x.text}</strong><span>{x.time}</span></div></div>)}</div>
@@ -851,7 +863,7 @@ function StatusPage({ api, sse, last }) {
           <div><span>Service</span><b className="greenText">Online</b></div>
           <div><span>Connection</span><b className={api ? "greenText" : "goldText"}>{api ? "Online" : "Checking"}</b></div>
           <div><span>Updates</span><b className={sse ? "greenText" : "goldText"}>{sse ? "Connected" : "Updating"}</b></div>
-          <div><span>Last Update</span><b>{last || "—"}</b></div>
+          <div><span>Last Update</span><b>{last || "â€”"}</b></div>
         </div>
       </div>
     </section>
@@ -861,7 +873,7 @@ function StatusPage({ api, sse, last }) {
 function EmptyState({ filter }) {
   return (
     <div className="empty rich">
-      <b>📭</b>
+      <b>ðŸ“­</b>
       <span>{filter === "active" ? "No active trades right now. SHAABAN bot is scanning for a clean setup." : "No signals found in this section."}</span>
     </div>
   );
@@ -877,7 +889,7 @@ function Welcome({ user, onContinue }) {
   return (
     <div className="welcomeScreen">
       <div className="welcomeCard">
-        <div className="welcomeBolt">⚡</div>
+        <div className="welcomeBolt">âš¡</div>
         <span>Welcome back</span>
         <h1>{user?.name || "VIP Trader"}</h1>
         <p>SHAABAN SIGNAL PRO is loading your VIP signals dashboard.</p>
@@ -890,8 +902,8 @@ function Welcome({ user, onContinue }) {
 
 
 function formatDate(ts) {
-  if (!ts) return "—";
-  try { return new Date(Number(ts)).toLocaleDateString(); } catch { return "—"; }
+  if (!ts) return "â€”";
+  try { return new Date(Number(ts)).toLocaleDateString(); } catch { return "â€”"; }
 }
 
 
@@ -1055,16 +1067,16 @@ function SubscribePanel({ user, onUserUpdate }) {
 
         <h3>{p.name}</h3>
         <div className="planPrice">${price.toFixed(0)}</div>
-        <p>{p.days || 30} days access · ≈ ${monthly.toFixed(2)} / month</p>
+        <p>{p.days || 30} days access Â· â‰ˆ ${monthly.toFixed(2)} / month</p>
 
         <ul className="planFeatureList">
-          <li>✅ All VIP signals unlocked</li>
-          <li>✅ Entry, SL, targets and status</li>
-          <li>✅ Push notifications for TP updates</li>
-          <li>✅ Free preview limits removed</li>
-          {auto && <li>🤖 Auto Copy Pro access included</li>}
-          {auto && <li>🛡️ Stop Loss always ON</li>}
-          {auto && <li>🔐 Binance Spot copy settings</li>}
+          <li>âœ… All VIP signals unlocked</li>
+          <li>âœ… Entry, SL, targets and status</li>
+          <li>âœ… Push notifications for TP updates</li>
+          <li>âœ… Free preview limits removed</li>
+          {auto && <li>ðŸ¤– Auto Copy Pro access included</li>}
+          {auto && <li>ðŸ›¡ï¸ Stop Loss always ON</li>}
+          {auto && <li>ðŸ” Binance Spot copy settings</li>}
         </ul>
 
         <button className="primary" onClick={() => pay(p.key)} disabled={!!busyPlan}>
@@ -1077,10 +1089,10 @@ function SubscribePanel({ user, onUserUpdate }) {
   return (
     <section className="subscribePage subscribePro">
       <div className="subscribeHero upgraded">
-        <span className="eyebrow">● SHAABAN VIP ACCESS</span>
+        <span className="eyebrow">â— SHAABAN VIP ACCESS</span>
         <h2>{isVip ? "Your subscription" : "Choose your VIP plan"}</h2>
         <p>{isVip ? `Active until: ${formatDate(user?.subscription_expires_at)}` : "Unlock every approved signal, entry, stop loss, target tracking, and VIP push alerts."}</p>
-        <div className="riskNote">⚠️ Signals are educational market alerts, not financial advice. Always manage risk and trade with money you can afford to lose.</div>
+        <div className="riskNote">âš ï¸ Signals are educational market alerts, not financial advice. Always manage risk and trade with money you can afford to lose.</div>
         <div className="subscribeHeroActions">
           <button className="clear" onClick={loadMe}>Refresh Access</button>
         </div>
@@ -1102,7 +1114,7 @@ function SubscribePanel({ user, onUserUpdate }) {
 
       <div className="subscribeNote proNote">
         <b>How it works</b>
-        <span>Choose a plan → pay with crypto → NOWPayments confirms the transaction → access activates automatically. Use Refresh Access if blockchain confirmation takes a few minutes.</span>
+        <span>Choose a plan â†’ pay with crypto â†’ NOWPayments confirms the transaction â†’ access activates automatically. Use Refresh Access if blockchain confirmation takes a few minutes.</span>
       </div>
     </section>
   );
@@ -1135,7 +1147,7 @@ function NotificationSetupGuide() {
     <div className="notificationGuideCard">
       <div className="notificationGuideHeader">
         <div>
-          <b>🔔 Notification Setup Guide</b>
+          <b>ðŸ”” Notification Setup Guide</b>
           <span>Follow these steps if notifications are not working.</span>
         </div>
       </div>
@@ -1143,25 +1155,25 @@ function NotificationSetupGuide() {
       {isIOS ? (
         <div className="notificationGuideBlock">
           <b>iPhone / iOS</b>
-          <span>1️⃣ Open SHAABAN website using Safari</span>
-          <span>2️⃣ Tap Share</span>
-          <span>3️⃣ Tap Add to Home Screen</span>
-          <span>4️⃣ Open SHAABAN from the new home screen icon</span>
-          <span>5️⃣ Tap Enable Notifications and allow permission</span>
+          <span>1ï¸âƒ£ Open SHAABAN website using Safari</span>
+          <span>2ï¸âƒ£ Tap Share</span>
+          <span>3ï¸âƒ£ Tap Add to Home Screen</span>
+          <span>4ï¸âƒ£ Open SHAABAN from the new home screen icon</span>
+          <span>5ï¸âƒ£ Tap Enable Notifications and allow permission</span>
         </div>
       ) : (
         <div className="notificationGuideBlock">
           <b>Android / Desktop</b>
-          <span>1️⃣ Open SHAABAN website</span>
-          <span>2️⃣ Tap Enable Notifications</span>
-          <span>3️⃣ Allow notifications from browser settings</span>
-          <span>4️⃣ Keep browser notifications enabled</span>
+          <span>1ï¸âƒ£ Open SHAABAN website</span>
+          <span>2ï¸âƒ£ Tap Enable Notifications</span>
+          <span>3ï¸âƒ£ Allow notifications from browser settings</span>
+          <span>4ï¸âƒ£ Keep browser notifications enabled</span>
         </div>
       )}
 
       {!supported && (
         <div className="notificationWarning">
-          ⚠️ This device or browser may not support web push notifications directly.
+          âš ï¸ This device or browser may not support web push notifications directly.
           On iPhone, install SHAABAN to the Home Screen first.
         </div>
       )}
@@ -1317,8 +1329,8 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
       <section className="autoCopyPage">
         <div className="autoCopyHero paused">
           <div>
-            <span className="eyebrow">● SUBSCRIPTION REQUIRED</span>
-            <h2>⏸️ Auto Copy Paused</h2>
+            <span className="eyebrow">â— SUBSCRIPTION REQUIRED</span>
+            <h2>â¸ï¸ Auto Copy Paused</h2>
             <p>Auto Copy is paused because Free Mode is OFF and this account does not have an active Auto Copy Pro subscription.</p>
           </div>
           <div className="copyStatus paused" aria-label="Auto Copy paused">
@@ -1328,7 +1340,7 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
           </div>
         </div>
         <div className="copyPausedBanner">
-          🛡️ الحماية شغالة: لن يتم فتح صفقات جديدة على Binance. إذا كنت رابط Binance سابقاً، المفاتيح تبقى محفوظة ولا تُحذف.
+          ðŸ›¡ï¸ Ø§Ù„Ø­Ù…Ø§ÙŠØ© Ø´ØºØ§Ù„Ø©: Ù„Ù† ÙŠØªÙ… ÙØªØ­ ØµÙÙ‚Ø§Øª Ø¬Ø¯ÙŠØ¯Ø© Ø¹Ù„Ù‰ Binance. Ø¥Ø°Ø§ ÙƒÙ†Øª Ø±Ø§Ø¨Ø· Binance Ø³Ø§Ø¨Ù‚Ø§Ù‹ØŒ Ø§Ù„Ù…ÙØ§ØªÙŠØ­ ØªØ¨Ù‚Ù‰ Ù…Ø­ÙÙˆØ¸Ø© ÙˆÙ„Ø§ ØªÙØ­Ø°Ù.
         </div>
         {err && <div className="error">{err}</div>}
         <NotificationSetupGuide />
@@ -1337,10 +1349,10 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
           <div className="panel autoPanel pausedAccessCard">
             <h3>What happens now?</h3>
             <div className="safetyList vertical">
-              <span>⏸️ Auto Copy is paused automatically.</span>
-              <span>🚫 No new approved signals will be copied to Binance.</span>
-              <span>🔐 Binance keys stay saved if they were connected before.</span>
-              <span>✅ After subscribing, you can enable Auto Copy again.</span>
+              <span>â¸ï¸ Auto Copy is paused automatically.</span>
+              <span>ðŸš« No new approved signals will be copied to Binance.</span>
+              <span>ðŸ” Binance keys stay saved if they were connected before.</span>
+              <span>âœ… After subscribing, you can enable Auto Copy again.</span>
             </div>
             <button className="primary bigEnable" onClick={() => {
               onUpgrade ? onUpgrade() : (window.location.hash = "subscribe");
@@ -1348,8 +1360,8 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
             }}>Upgrade to Auto Copy Pro</button>
           </div>
           <div className="panel autoPanel pausedAccessCard">
-            <h3>الحالة بالعربي</h3>
-            <p className="mutedText">الأوتو كوبي متوقف مؤقتاً بسبب الاشتراك. هذا لا يعني حذف ربط Binance، فقط يمنع نسخ صفقات جديدة حتى يتم تفعيل الاشتراك أو يرجع Free Mode.</p>
+            <h3>Ø§Ù„Ø­Ø§Ù„Ø© Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠ</h3>
+            <p className="mutedText">Ø§Ù„Ø£ÙˆØªÙˆ ÙƒÙˆØ¨ÙŠ Ù…ØªÙˆÙ‚Ù Ù…Ø¤Ù‚ØªØ§Ù‹ Ø¨Ø³Ø¨Ø¨ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ. Ù‡Ø°Ø§ Ù„Ø§ ÙŠØ¹Ù†ÙŠ Ø­Ø°Ù Ø±Ø¨Ø· BinanceØŒ ÙÙ‚Ø· ÙŠÙ…Ù†Ø¹ Ù†Ø³Ø® ØµÙÙ‚Ø§Øª Ø¬Ø¯ÙŠØ¯Ø© Ø­ØªÙ‰ ÙŠØªÙ… ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ø£Ùˆ ÙŠØ±Ø¬Ø¹ Free Mode.</p>
           </div>
         </div>
       </section>
@@ -1359,7 +1371,7 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
   return (
     <section className="autoCopyPage">
       <div className="autoCopyHero">
-        <div><span className="eyebrow">● BINANCE SPOT ONLY</span><h2>🤖 SHAABAN Auto Copy Pro</h2><p>Copy approved SHAABAN signals automatically. Stop Loss is always ON.</p></div>
+        <div><span className="eyebrow">â— BINANCE SPOT ONLY</span><h2>ðŸ¤– SHAABAN Auto Copy Pro</h2><p>Copy approved SHAABAN signals automatically. Stop Loss is always ON.</p></div>
         <div className={pausedBySubscription ? "copyStatus paused" : effectiveEnabled ? "copyStatus on" : "copyStatus"} aria-label={pausedBySubscription ? "Auto Copy paused" : effectiveEnabled ? "Auto Copy status enabled" : "Auto Copy status disabled"}>
           <small>Status</small>
           <b>{pausedBySubscription ? "PAUSED" : effectiveEnabled ? "ON" : "OFF"}</b>
@@ -1369,22 +1381,22 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
       </div>
       {userEmergencyStop && (
         <div className="copyPausedBanner danger">
-          🔴 <b>Auto Copy Emergency Stop Active</b>
+          ðŸ”´ <b>Auto Copy Emergency Stop Active</b>
           <span>{safety.emergency_stop_reason || "New BUY copy jobs are blocked by admin. SELL / Manual Close remains allowed for protection."}</span>
         </div>
       )}
       {!globalCopyOn && !userEmergencyStop && (
         <div className="copyPausedBanner">
-          ⚠️ Auto Copy is temporarily disabled by admin. No new BUY jobs will be copied.
+          âš ï¸ Auto Copy is temporarily disabled by admin. No new BUY jobs will be copied.
         </div>
       )}
 
-      {freeModeActive && <div className="copyFreeBanner">🎁 Free Mode Active — Auto Copy Pro access is open. It only runs if you enable it yourself.</div>}
-      {pausedBySubscription && <div className="copyPausedBanner">⏸️ Auto Copy paused — subscription required. No new Binance trades will be copied, and your Binance connection stays saved.</div>}
+      {freeModeActive && <div className="copyFreeBanner">ðŸŽ Free Mode Active â€” Auto Copy Pro access is open. It only runs if you enable it yourself.</div>}
+      {pausedBySubscription && <div className="copyPausedBanner">â¸ï¸ Auto Copy paused â€” subscription required. No new Binance trades will be copied, and your Binance connection stays saved.</div>}
       {err && <div className="error">{err}</div>}{msg && <div className="successBox">{msg}</div>}
       <div className="autoCopyGrid">
                 <div className="panel autoPanel">
-          <h3>🔐 Binance Auto Copy Status</h3>
+          <h3>ðŸ” Binance Auto Copy Status</h3>
           <div className="copySettingsGrid">
             <div className={binanceConnected ? "computedBox ready" : "computedBox"}>
               <span>Binance</span>
@@ -1416,7 +1428,7 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
           <div className="binanceIpGuide">
             <div className="ipGuideHead">
               <div>
-                <b>📍 Binance IP Whitelist Guide</b>
+                <b>ðŸ“ Binance IP Whitelist Guide</b>
                 <span>Add this IP inside Binance trusted IPs.</span>
               </div>
               <button type="button" onClick={copyServerIp}>Copy IP</button>
@@ -1429,16 +1441,16 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
 
             <div className="ipSteps">
               <b>How to add it:</b>
-              <span>1️⃣ Binance → API Management</span>
-              <span>2️⃣ Choose API Key → Edit restrictions</span>
-              <span>3️⃣ Select: Restrict access to trusted IPs only</span>
-              <span>4️⃣ Paste the server IP above</span>
-              <span>5️⃣ Save / Confirm with 2FA</span>
-              <span>6️⃣ Enable Reading + Spot & Margin Trading</span>
+              <span>1ï¸âƒ£ Binance â†’ API Management</span>
+              <span>2ï¸âƒ£ Choose API Key â†’ Edit restrictions</span>
+              <span>3ï¸âƒ£ Select: Restrict access to trusted IPs only</span>
+              <span>4ï¸âƒ£ Paste the server IP above</span>
+              <span>5ï¸âƒ£ Save / Confirm with 2FA</span>
+              <span>6ï¸âƒ£ Enable Reading + Spot & Margin Trading</span>
             </div>
 
             <div className="ipWarning">
-              ⚠️ Keep Withdrawals, Futures, Margin Loan/Transfer and Universal Transfer OFF.
+              âš ï¸ Keep Withdrawals, Futures, Margin Loan/Transfer and Universal Transfer OFF.
             </div>
           </div>
           <form onSubmit={connectBinance} className="copyForm">
@@ -1458,33 +1470,33 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
             )}
 
           </form>
-          <div className="safetyList"><span>✅ Spot Trading only</span><span>❌ Withdraw permission must be OFF</span><span>🛡️ Stop Loss always ON</span></div>
+          <div className="safetyList"><span>âœ… Spot Trading only</span><span>âŒ Withdraw permission must be OFF</span><span>ðŸ›¡ï¸ Stop Loss always ON</span></div>
         </div>
                 <div className="panel autoPanel">
-          <h3>✅ Auto Copy Readiness Checklist</h3>
+          <h3>âœ… Auto Copy Readiness Checklist</h3>
           <div className="copyChecklist">
             <div className={binanceConnected ? "checkItem ok" : "checkItem warn"}>
-              <b>{binanceConnected ? "✅" : "⚠️"} Binance API Connected</b>
+              <b>{binanceConnected ? "âœ…" : "âš ï¸"} Binance API Connected</b>
               <span>{binanceConnected ? "Your Binance Spot API key is connected." : "Connect Binance before enabling Auto Copy."}</span>
             </div>
             <div className="checkItem ok">
-              <b>🛡️ Stop Loss Always ON</b>
+              <b>ðŸ›¡ï¸ Stop Loss Always ON</b>
               <span>Every copied trade keeps SL protection active.</span>
             </div>
             <div className="checkItem warn">
-              <b>🚫 Withdrawals Must Be OFF</b>
+              <b>ðŸš« Withdrawals Must Be OFF</b>
               <span>Never enable withdrawal permission on your Binance API key.</span>
             </div>
             <div className="checkItem warn">
-              <b>📍 IP Restriction Recommended</b>
+              <b>ðŸ“ IP Restriction Recommended</b>
               <span>Whitelist the server IP shown above for stronger protection.</span>
             </div>
             <div className={Number(form.trade_amount_usdt || 0) > 0 ? "checkItem ok" : "checkItem warn"}>
-              <b>{Number(form.trade_amount_usdt || 0) > 0 ? "✅" : "⚠️"} Trade Amount Set</b>
+              <b>{Number(form.trade_amount_usdt || 0) > 0 ? "âœ…" : "âš ï¸"} Trade Amount Set</b>
               <span>Current amount: {form.trade_amount_usdt || "--"} USDT per copied trade.</span>
             </div>
             <div className={Number(form.max_open_trades || 0) > 0 ? "checkItem ok" : "checkItem warn"}>
-              <b>{Number(calcMaxOpen || 0) > 0 ? "✅" : "⚠️"} Max Open Trades Set</b>
+              <b>{Number(calcMaxOpen || 0) > 0 ? "âœ…" : "âš ï¸"} Max Open Trades Set</b>
               <span>Current max open trades: {calcMaxOpen || "--"}.</span>
             </div>
           </div>
@@ -1497,9 +1509,9 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
             <label>Trade Amount per Signal<input type="number" min="10" step="1" value={form.trade_amount_usdt} onChange={e=>setForm({...form, trade_amount_usdt:e.target.value})} /></label>
             {showHighTradeWarning && (
               <div className={showExtremeTradeWarning ? "copyRiskWarning extreme" : "copyRiskWarning"}>
-                <b>⚠️ High Trade Amount</b>
-                <span>المبلغ لكل صفقة كبير. تأكد من الرصيد والمخاطرة قبل تفعيل النسخ التلقائي.</span>
-                <small>{showExtremeTradeWarning ? "Very high risk — ننصح بالتجربة بمبلغ أصغر أولًا." : "Risk reminder — Stop Loss is always ON, but crypto trading remains risky."}</small>
+                <b>âš ï¸ High Trade Amount</b>
+                <span>Ø§Ù„Ù…Ø¨Ù„Øº Ù„ÙƒÙ„ ØµÙÙ‚Ø© ÙƒØ¨ÙŠØ±. ØªØ£ÙƒØ¯ Ù…Ù† Ø§Ù„Ø±ØµÙŠØ¯ ÙˆØ§Ù„Ù…Ø®Ø§Ø·Ø±Ø© Ù‚Ø¨Ù„ ØªÙØ¹ÙŠÙ„ Ø§Ù„Ù†Ø³Ø® Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ.</span>
+                <small>{showExtremeTradeWarning ? "Very high risk â€” Ù†Ù†ØµØ­ Ø¨Ø§Ù„ØªØ¬Ø±Ø¨Ø© Ø¨Ù…Ø¨Ù„Øº Ø£ØµØºØ± Ø£ÙˆÙ„Ù‹Ø§." : "Risk reminder â€” Stop Loss is always ON, but crypto trading remains risky."}</small>
               </div>
             )}
             <label>Max Auto Copy Capital<input type="number" min="10" step="1" value={form.max_capital_usdt} onChange={e=>setForm({...form, max_capital_usdt:e.target.value})} /></label>
@@ -1509,17 +1521,17 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
           <div className={settings.binance_connected ? "copyEnableBox ready" : "copyEnableBox"}>
             <div>
               <b>{pausedBySubscription ? "Auto Copy is paused" : effectiveEnabled ? "Auto Copy is running" : settings.binance_connected ? "Ready to start" : "Connect Binance first"}</b>
-              <span>{pausedBySubscription ? "النسخ متوقف مؤقتاً بسبب الاشتراك. لن يتم نسخ صفقات جديدة." : effectiveEnabled ? "اضغط Turn Auto Copy OFF لإيقاف النسخ التلقائي." : settings.binance_connected ? "اضغط Enable Auto Copy لتشغيل النسخ التلقائي." : "اربط Binance بالأعلى حتى تتفعل كبسة التشغيل."}</span>
+              <span>{pausedBySubscription ? "Ø§Ù„Ù†Ø³Ø® Ù…ØªÙˆÙ‚Ù Ù…Ø¤Ù‚ØªØ§Ù‹ Ø¨Ø³Ø¨Ø¨ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ. Ù„Ù† ÙŠØªÙ… Ù†Ø³Ø® ØµÙÙ‚Ø§Øª Ø¬Ø¯ÙŠØ¯Ø©." : effectiveEnabled ? "Ø§Ø¶ØºØ· Turn Auto Copy OFF Ù„Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ù†Ø³Ø® Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ." : settings.binance_connected ? "Ø§Ø¶ØºØ· Enable Auto Copy Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ù†Ø³Ø® Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ." : "Ø§Ø±Ø¨Ø· Binance Ø¨Ø§Ù„Ø£Ø¹Ù„Ù‰ Ø­ØªÙ‰ ØªØªÙØ¹Ù„ ÙƒØ¨Ø³Ø© Ø§Ù„ØªØ´ØºÙŠÙ„."}</span>
             </div>
             <button className="primary bigEnable" onClick={() => saveSettings(true)} disabled={busy || !settings.binance_connected || effectiveEnabled || pausedBySubscription}>
-              {pausedBySubscription ? "Paused — Subscription Required" : effectiveEnabled ? "Auto Copy Enabled" : settings.binance_connected ? "Enable Auto Copy" : "Connect Binance First"}
+              {pausedBySubscription ? "Paused â€” Subscription Required" : effectiveEnabled ? "Auto Copy Enabled" : settings.binance_connected ? "Enable Auto Copy" : "Connect Binance First"}
             </button>
           </div>
           <button className="clear stopCopyBtn" onClick={() => saveSettings(false)} disabled={busy || !settings.enabled}>Turn Auto Copy OFF</button>
         </div>
       </div>
       <div className="panel wide autoPanel"><h3>Live Copy Logs</h3>{(data?.logs || []).length === 0 ? <div className="empty small">No copy logs yet.</div> : <div className="copyLogs">{data.logs.map(l=><div key={l.id} className={`copyLog ${l.event_type}`}><b>{l.event_type}</b><span>{l.message}</span><em>{new Date(Number(l.created_at || 0)).toLocaleString()}</em></div>)}</div>}</div>
-      <div className="panel wide autoPanel"><h3>Copied Trades</h3>{(data?.trades || []).length === 0 ? <div className="empty small">No copied trades yet.</div> : <div className="copyTradeList">{data.trades.map(t=><div key={t.id} className="copyTrade"><b>#{t.symbol}</b><span>{t.status} · {Number(t.trade_amount_usdt || 0).toFixed(2)} USDT · Exit {String(t.exit_target || '').toUpperCase()}</span><em>{t.pnl_pct ? `${Number(t.pnl_pct).toFixed(2)}%` : "—"}</em></div>)}</div>}</div>
+      <div className="panel wide autoPanel"><h3>Copied Trades</h3>{(data?.trades || []).length === 0 ? <div className="empty small">No copied trades yet.</div> : <div className="copyTradeList">{data.trades.map(t=><div key={t.id} className="copyTrade"><b>#{t.symbol}</b><span>{t.status} Â· {Number(t.trade_amount_usdt || 0).toFixed(2)} USDT Â· Exit {String(t.exit_target || '').toUpperCase()}</span><em>{t.pnl_pct ? `${Number(t.pnl_pct).toFixed(2)}%` : "â€”"}</em></div>)}</div>}</div>
     </section>
   );
 }
@@ -1578,7 +1590,7 @@ function SecuritySessionsPanel() {
       <div className="sessionList">
         {sessions.length === 0 ? <span className="mutedSmall">No active sessions found.</span> : sessions.map(s => (
           <div className={s.current ? "sessionItem current" : "sessionItem"} key={s.id}>
-            <div><b>{s.device} · {s.browser}</b><span>{s.ip || "Unknown IP"} · {formatDate(s.created_at)}</span></div>
+            <div><b>{s.device} Â· {s.browser}</b><span>{s.ip || "Unknown IP"} Â· {formatDate(s.created_at)}</span></div>
             {s.current ? <em>Current</em> : <button disabled={busy} onClick={() => revoke(s.id)}>Revoke</button>}
           </div>
         ))}
@@ -1689,9 +1701,9 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
 
   async function installApp() {
     const fallbackMessage =
-      "📲 Install SHAABAN App\n\n" +
+      "ðŸ“² Install SHAABAN App\n\n" +
       "Android Chrome:\n" +
-      "Tap the browser menu ⋮ then choose Install app or Add to Home screen.\n\n" +
+      "Tap the browser menu â‹® then choose Install app or Add to Home screen.\n\n" +
       "iPhone Safari:\n" +
       "Tap Share then Add to Home Screen.\n\n" +
       "If your browser supports direct install, the popup will open now.";
@@ -1737,11 +1749,15 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }
 
   async function enableNotifications() {
+    if (isIOSDevice() && !isStandalonePWA()) {
+      addNotice(iPhone: Open Safari, tap Share, Add to Home Screen, then open from the app icon and enable notifications., closed, iPhone);
+return;
+ }
     setPushBusy(true);
     try {
       if (!pushSupported()) {
-        alert("🔔 لتصلك إشعارات SHAABAN\n\nيرجى فتح الموقع من متصفح مدعوم لتفعيل التنبيهات.\n\n✅ Android:\nChrome / Edge / Firefox / Opera / Samsung Internet\n\n✅ iPhone / iPad:\nSafari على iOS 16.4 أو أحدث\nثم Share → Add to Home Screen\nوبعدها افتح التطبيق من الأيقونة وفعّل الإشعارات.\n\n✅ Desktop:\nChrome / Edge / Firefox / Safari\n\n⚠️ متصفحات Telegram / Instagram / Facebook الداخلية وبعض المتصفحات الخاصة قد لا تدعم الإشعارات.");
-        addNotice("Use a supported browser to enable notifications.", "closed", "⚠️");
+        alert("ðŸ”” Ù„ØªØµÙ„Ùƒ Ø¥Ø´Ø¹Ø§Ø±Ø§Øª SHAABAN\n\nÙŠØ±Ø¬Ù‰ ÙØªØ­ Ø§Ù„Ù…ÙˆÙ‚Ø¹ Ù…Ù† Ù…ØªØµÙØ­ Ù…Ø¯Ø¹ÙˆÙ… Ù„ØªÙØ¹ÙŠÙ„ Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª.\n\nâœ… Android:\nChrome / Edge / Firefox / Opera / Samsung Internet\n\nâœ… iPhone / iPad:\nSafari Ø¹Ù„Ù‰ iOS 16.4 Ø£Ùˆ Ø£Ø­Ø¯Ø«\nØ«Ù… Share â†’ Add to Home Screen\nÙˆØ¨Ø¹Ø¯Ù‡Ø§ Ø§ÙØªØ­ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ù…Ù† Ø§Ù„Ø£ÙŠÙ‚ÙˆÙ†Ø© ÙˆÙØ¹Ù‘Ù„ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª.\n\nâœ… Desktop:\nChrome / Edge / Firefox / Safari\n\nâš ï¸ Ù…ØªØµÙØ­Ø§Øª Telegram / Instagram / Facebook Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ© ÙˆØ¨Ø¹Ø¶ Ø§Ù„Ù…ØªØµÙØ­Ø§Øª Ø§Ù„Ø®Ø§ØµØ© Ù‚Ø¯ Ù„Ø§ ØªØ¯Ø¹Ù… Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª.");
+        addNotice("Use a supported browser to enable notifications.", "closed", "âš ï¸");
         return;
       }
       const keyRes = await fetch(`${Connection_URL}/api/push/vapid-public-key`, { credentials: "include" });
@@ -1767,16 +1783,16 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.error) throw new Error(data.error || "Cannot register this device for notifications.");
-      addNotice("Notifications enabled on this device.", "target", "🔔");
+      addNotice("Notifications enabled on this device.", "target", "ðŸ””");
       await refreshPushInfo();
     } catch (e) {
-      addNotice(e.message || "Cannot enable notifications.", "closed", "⚠️");
+      addNotice(e.message || "Cannot enable notifications.", "closed", "âš ï¸");
     } finally {
       setPushBusy(false);
     }
   }
 
-  const addNotice = useCallback((text, type="info", icon="📡") => {
+  const addNotice = useCallback((text, type="info", icon="ðŸ“¡") => {
     const item = { id: Date.now() + Math.random(), text, type, icon, time: new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) };
     setToasts(p => [...p, item]);
     setNotifs(p => [item, ...p].slice(0, 60));
@@ -1843,7 +1859,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const fullSync = useCallback(async () => {
     setBusy(true);
     await Promise.allSettled([loadPlatformSettings(), load({ force: true }), refreshPushInfo()]);
-    addNotice("Synced now", "system", "🔄");
+    addNotice("Synced now", "system", "ðŸ”„");
   }, [loadPlatformSettings, load, addNotice]);
 
   useEffect(() => { load({ force: true }); loadPlatformSettings(); }, [load, loadPlatformSettings]);
@@ -1888,7 +1904,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   useEffect(() => { refreshPushInfo(); }, []);
   const makeFreePreview = useCallback(async (signal) => {
     if (!signal?.key) {
-      addNotice("Signal key is missing.", "closed", "⚠️");
+      addNotice("Signal key is missing.", "closed", "âš ï¸");
       return;
     }
     try {
@@ -1900,10 +1916,10 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to set free preview");
-      addNotice(`${sym(signal.symbol)} is now the Free Preview signal`, "target", "👁️");
+      addNotice(`${sym(signal.symbol)} is now the Free Preview signal`, "target", "ðŸ‘ï¸");
       load();
     } catch (e) {
-      addNotice(e.message || "Cannot set free preview", "closed", "⚠️");
+      addNotice(e.message || "Cannot set free preview", "closed", "âš ï¸");
     }
   }, [addNotice, load]);
 
@@ -1936,7 +1952,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       es.addEventListener("new_signal", (e) => {
         try {
           const d = JSON.parse(e.data || "{}");
-          addNotice(`New VIP signal: ${sym(d.symbol)}`, "new", "⚡");
+          addNotice(`New VIP signal: ${sym(d.symbol)}`, "new", "âš¡");
           highlight(d.id);
         } catch {}
         load({ force: true });
@@ -1946,7 +1962,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
         try {
           const d = JSON.parse(e.data || "{}");
           const isTarget = String(d.status || "").startsWith("tp");
-          addNotice(`${sym(d.symbol)} ${isTarget ? "reached target" : "closed"}`, isTarget ? "target" : "closed", isTarget ? "🎯" : "🛑");
+          addNotice(`${sym(d.symbol)} ${isTarget ? "reached target" : "closed"}`, isTarget ? "target" : "closed", isTarget ? "ðŸŽ¯" : "ðŸ›‘");
           highlight(d.id);
         } catch {}
         load({ force: true });
@@ -2006,9 +2022,9 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   }, [signals, publicStats]);
 
   const market = useMemo(() => {
-    if (stats.active >= 6) return { icon:"🟢", title:"Active Market", text:"Multiple live approved opportunities." };
-    if (stats.active >= 1) return { icon:"🟡", title:"Selective Market", text:"Clean approved setups are live." };
-    return { icon:"🔵", title:"Waiting Mode", text:"Waiting for a clean approved setup." };
+    if (stats.active >= 6) return { icon:"ðŸŸ¢", title:"Active Market", text:"Multiple live approved opportunities." };
+    if (stats.active >= 1) return { icon:"ðŸŸ¡", title:"Selective Market", text:"Clean approved setups are live." };
+    return { icon:"ðŸ”µ", title:"Waiting Mode", text:"Waiting for a clean approved setup." };
   }, [stats.active]);
 
   const list = useMemo(() => {
@@ -2050,19 +2066,19 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
 
       <header className="topbar">
         <button type="button" className="brand brandHome" onClick={() => openTab("board")} title="Back to home">
-          <div className="bolt">⚡</div>
+          <div className="bolt">âš¡</div>
           <div><b>SHAABAN SIGNAL PRO</b><span>{freeModeActive ? "Free Mode Active" : (vipAccess ? "VIP Signals Dashboard" : "Free Preview Dashboard")}</span></div>
         </button>
 
         <div className="topActions">
-          <button className="installBtn" onClick={installApp}>📱 Install</button>
+          <button className="installBtn" onClick={installApp}>ðŸ“± Install</button>
           <button className={pushInfo.enabled ? "notifyEnabled" : "notifyBtn"} onClick={enableNotifications} disabled={pushBusy}>
-            {pushInfo.enabled ? "🔔 Notifications On" : "🔔 Enable Alerts"}
+            {pushInfo.enabled ? "ðŸ”” Notifications On" : "ðŸ”” Enable Alerts"}
           </button>
-          <button className="themeToggle" onClick={toggleTheme}>{theme === "light" ? "🌙 Dark" : "☀️ Light"}</button>
-          <button className="bell" onClick={() => setDrawerOpen(true)}>🔔 {notifs.length}</button>
+          <button className="themeToggle" onClick={toggleTheme}>{theme === "light" ? "ðŸŒ™ Dark" : "â˜€ï¸ Light"}</button>
+          <button className="bell" onClick={() => setDrawerOpen(true)}>ðŸ”” {notifs.length}</button>
           {!vipAccess && <button className="upgradeMini" onClick={() => openTab("subscribe")}>Upgrade</button>}
-          <span>{user?.name || "Trader"} · {membershipLabel(user)}</span>
+          <span>{user?.name || "Trader"} Â· {membershipLabel(user)}</span>
           <button onClick={fullSync}>Sync Now</button>
           <button onClick={async () => { try { await fetch(`${Connection_URL}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {} localStorage.removeItem("shaaban_user"); onLogout(); }}>Logout</button>
         </div>
@@ -2077,13 +2093,13 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
           <button className={tab === "profile" ? "on" : ""} onClick={() => openTab("profile")}>Profile</button>
         </section>
         {tab !== "board" && (
-          <button className="backToSignals" onClick={() => openTab("board")}>← Back to Signals</button>
+          <button className="backToSignals" onClick={() => openTab("board")}>â† Back to Signals</button>
         )}
 
         {freeModeActive && (
           <section className="freeModeBanner">
-            <b>{platformSettings.banner_title || "🎁 Free Mode Active"}</b>
-            <span>{platformSettings.banner_text || "جميع الإشارات مفتوحة ."}</span>
+            <b>{platformSettings.banner_title || "ðŸŽ Free Mode Active"}</b>
+            <span>{platformSettings.banner_text || "Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¥Ø´Ø§Ø±Ø§Øª Ù…ÙØªÙˆØ­Ø© ."}</span>
           </section>
         )}
 
@@ -2092,11 +2108,11 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
             <section className="marketBanner"><b>{market.icon} {market.title}</b><span>{market.text}</span></section>
 
             <section className="hero proHero">
-              <div className="proRibbon">SHAABAN SIGNAL PRO · {vipAccess ? "VIP MEMBER AREA" : "FREE PREVIEW"}</div>
+              <div className="proRibbon">SHAABAN SIGNAL PRO Â· {vipAccess ? "VIP MEMBER AREA" : "FREE PREVIEW"}</div>
               <div>
-                <span className="eyebrow">● {vipAccess ? "LIVE APPROVED SIGNALS" : "FREE PREVIEW SIGNAL"}</span>
+                <span className="eyebrow">â— {vipAccess ? "LIVE APPROVED SIGNALS" : "FREE PREVIEW SIGNAL"}</span>
                 <h1>{vipAccess ? "VIP Signals Dashboard" : "Free Preview Dashboard"}</h1>
-                <p>{vipAccess ? "VIP Signals Only • Risk Managed • Updates" : "View one selected signal. Upgrade to unlock all live trades."}</p>
+                <p>{vipAccess ? "VIP Signals Only â€¢ Risk Managed â€¢ Updates" : "View one selected signal. Upgrade to unlock all live trades."}</p>
                 <div className="heroChips"><span>Quality Checked</span><span>Dynamic Targets</span><span>VIP Tracking</span></div>
               </div>
               <div className="heroCard"><span>Today</span><b>{stats.today}</b><em>approved signals</em></div>
@@ -2105,7 +2121,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
             {!vipAccess && (
               <section className="upgradeBanner">
                 <div>
-                  <b>🔒 Unlock all SHAABAN VIP signals</b>
+                  <b>ðŸ”’ Unlock all SHAABAN VIP signals</b>
                   <span>Free members can view one selected preview signal. VIP unlocks every coin, entry, SL, targets, and live alerts.</span>
                 </div>
                 <button onClick={() => openTab("subscribe")}>Upgrade to VIP</button>
@@ -2114,7 +2130,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
 
             <section className={pushInfo.enabled ? "pushBanner enabled" : "pushBanner"}>
               <div>
-                <b>{pushInfo.enabled ? "🔔 Notifications enabled" : "🔔 Enable signal notifications"}</b>
+                <b>{pushInfo.enabled ? "ðŸ”” Notifications enabled" : "ðŸ”” Enable signal notifications"}</b>
                 <span>{pushInfo.enabled ? "This device is registered for approved signals and target alerts." : "Turn on alerts to receive signals and TP updates even when the page is closed."}</span>
               </div>
               <div className="pushBannerActions">
@@ -2199,7 +2215,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
                 <div><span>Membership</span><b>{membershipLabel(user)}</b></div>
                 <div><span>Access</span><b className={vipAccess ? "greenText" : "goldText"}>{vipAccess ? "Full" : "Preview"}</b></div>
                 <div><span>Version</span><b>PRO UI</b></div>
-                <div><span>Last Update</span><b>{lastUpdate || "—"}</b></div>
+                <div><span>Last Update</span><b>{lastUpdate || "â€”"}</b></div>
               </div>
               <div className="statusGrid">
                 <div><span>Total</span><b>{stats.total}</b></div>
@@ -2284,6 +2300,9 @@ export default function App() {
   if (screen === "login") return <Login onLogin={(u) => { setUser(u); setShowWelcome(true); }} theme={theme} toggleTheme={toggleTheme} onBack={() => setScreen("landing")} />;
   return <Landing theme={theme} toggleTheme={toggleTheme} onLogin={() => setScreen("login")} />;
 }
+
+
+
 
 
 
