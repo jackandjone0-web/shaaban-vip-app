@@ -1127,6 +1127,48 @@ function normalizeCopySettings(payload) {
   };
 }
 
+function NotificationSetupGuide() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "");
+  const supported = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+
+  return (
+    <div className="notificationGuideCard">
+      <div className="notificationGuideHeader">
+        <div>
+          <b>🔔 Notification Setup Guide</b>
+          <span>Follow these steps if notifications are not working.</span>
+        </div>
+      </div>
+
+      {isIOS ? (
+        <div className="notificationGuideBlock">
+          <b>iPhone / iOS</b>
+          <span>1️⃣ Open SHAABAN website using Safari</span>
+          <span>2️⃣ Tap Share</span>
+          <span>3️⃣ Tap Add to Home Screen</span>
+          <span>4️⃣ Open SHAABAN from the new home screen icon</span>
+          <span>5️⃣ Tap Enable Notifications and allow permission</span>
+        </div>
+      ) : (
+        <div className="notificationGuideBlock">
+          <b>Android / Desktop</b>
+          <span>1️⃣ Open SHAABAN website</span>
+          <span>2️⃣ Tap Enable Notifications</span>
+          <span>3️⃣ Allow notifications from browser settings</span>
+          <span>4️⃣ Keep browser notifications enabled</span>
+        </div>
+      )}
+
+      {!supported && (
+        <div className="notificationWarning">
+          ⚠️ This device or browser may not support web push notifications directly.
+          On iPhone, install SHAABAN to the Home Screen first.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
   const [data, setData] = useState(null);
   const [binanceStatus, setBinanceStatus] = useState(null);
@@ -1182,6 +1224,42 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
   }
 
   useEffect(() => { load(); }, [access]);
+
+  async function disconnectBinance() {
+    const ok = window.confirm(
+      "Are you sure you want to disconnect Binance?\n\nThis will remove your saved Binance API key from SHAABAN and turn Auto Copy OFF.\nExisting Binance trades will not be closed automatically."
+    );
+
+    if (!ok) return;
+
+    try {
+      setLoading(true);
+      setMsg("");
+
+      const res = await apiFetch("/api/copy/binance/disconnect", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.details || "Failed to disconnect Binance");
+      }
+
+      setMsg("Binance disconnected successfully. Auto Copy is now OFF.");
+
+      try { await load(); } catch (_) {}
+      try { await loadBinanceStatus(); } catch (_) {}
+
+    } catch (err) {
+      setMsg(err.message || "Failed to disconnect Binance");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function connectBinance(e) {
     e.preventDefault(); setBusy(true); setErr(""); setMsg("");
@@ -1253,7 +1331,9 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
           🛡️ الحماية شغالة: لن يتم فتح صفقات جديدة على Binance. إذا كنت رابط Binance سابقاً، المفاتيح تبقى محفوظة ولا تُحذف.
         </div>
         {err && <div className="error">{err}</div>}
-        <div className="autoCopyGrid">
+        <NotificationSetupGuide />
+
+      <div className="autoCopyGrid">
           <div className="panel autoPanel pausedAccessCard">
             <h3>What happens now?</h3>
             <div className="safetyList vertical">
@@ -1365,6 +1445,18 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
             <input value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="Binance API Key" />
             <input value={apiSecret} onChange={e=>setApiSecret(e.target.value)} placeholder="Binance Secret Key" type="password" />
             <button className="primary" disabled={busy}>{settings.binance_connected ? "Re-Verify / Update Key" : "Verify Binance Connection"}</button>
+
+            {binance?.connected && (
+              <button
+                type="button"
+                className="dangerOutlineBtn"
+                disabled={loading}
+                onClick={disconnectBinance}
+              >
+                Disconnect Binance
+              </button>
+            )}
+
           </form>
           <div className="safetyList"><span>✅ Spot Trading only</span><span>❌ Withdraw permission must be OFF</span><span>🛡️ Stop Loss always ON</span></div>
         </div>
