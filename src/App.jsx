@@ -1739,7 +1739,11 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   async function enableNotifications() {
     setPushBusy(true);
     try {
-      if (!pushSupported()) throw new Error("This browser does not support push notifications.");
+      if (!pushSupported()) {
+        alert("🔔 لتصلك إشعارات SHAABAN\n\nيرجى فتح الموقع من متصفح مدعوم لتفعيل التنبيهات.\n\n✅ Android:\nChrome / Edge / Firefox / Opera / Samsung Internet\n\n✅ iPhone / iPad:\nSafari على iOS 16.4 أو أحدث\nثم Share → Add to Home Screen\nوبعدها افتح التطبيق من الأيقونة وفعّل الإشعارات.\n\n✅ Desktop:\nChrome / Edge / Firefox / Safari\n\n⚠️ متصفحات Telegram / Instagram / Facebook الداخلية وبعض المتصفحات الخاصة قد لا تدعم الإشعارات.");
+        addNotice("Use a supported browser to enable notifications.", "closed", "⚠️");
+        return;
+      }
       const keyRes = await fetch(`${Connection_URL}/api/push/vapid-public-key`, { credentials: "include" });
       const keyData = await keyRes.json();
       const publicKey = keyData.publicKey;
