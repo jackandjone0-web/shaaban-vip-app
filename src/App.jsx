@@ -1599,7 +1599,7 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
   const [compact, setCompact] = useState(false);
   const [logos, setLogos] = useState({});
   const [selected, setSelected] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);`n  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [highlighted, setHighlighted] = useState(new Set());
   const [toasts, setToasts] = useState([]);
@@ -2265,5 +2265,6 @@ export default function App() {
   if (screen === "login") return <Login onLogin={(u) => { setUser(u); setShowWelcome(true); }} theme={theme} toggleTheme={toggleTheme} onBack={() => setScreen("landing")} />;
   return <Landing theme={theme} toggleTheme={toggleTheme} onLogin={() => setScreen("login")} />;
 }
+
 
 
