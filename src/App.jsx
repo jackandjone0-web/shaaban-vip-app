@@ -1233,10 +1233,10 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
     if (!ok) return;
 
     try {
-      setLoading(true);
+      setBusy(true);
       setMsg("");
 
-      const res = await apiFetch("/api/copy/binance/disconnect", {
+      const res = await fetch(`${Connection_URL}/api/copy/binance/disconnect`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -1257,7 +1257,7 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
     } catch (err) {
       setMsg(err.message || "Failed to disconnect Binance");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
@@ -1450,7 +1450,7 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
               <button
                 type="button"
                 className="dangerOutlineBtn"
-                disabled={loading}
+                disabled={busy}
                 onClick={disconnectBinance}
               >
                 Disconnect Binance
@@ -1817,12 +1817,12 @@ function Dashboard({ user, onLogout, onUserUpdate, theme, toggleTheme }) {
       retryTimerRef.current = setTimeout(() => load({ force: true }), 3500);
     } finally {
       state.inFlight = false;
-      setLoading(false);
+      setBusy(false);
     }
   }, []);
 
   const fullSync = useCallback(async () => {
-    setLoading(true);
+    setBusy(true);
     await Promise.allSettled([loadPlatformSettings(), load({ force: true }), refreshPushInfo()]);
     addNotice("Synced now", "system", "🔄");
   }, [loadPlatformSettings, load, addNotice]);
