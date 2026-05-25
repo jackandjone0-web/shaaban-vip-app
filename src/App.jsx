@@ -1229,7 +1229,28 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
         throw new Error(d.error || "Cannot load Auto Copy");
       }
       const s = normalizeCopySettings(d);
-      setData({ ...d, settings: s });
+
+      let activity = { logs: [], queue: [], copied_trades: [] };
+      try {
+        const activityRes = await fetch(`${Connection_URL}/api/copy/activity?limit=50`, { credentials: "include" });
+        const activityData = await activityRes.json().catch(() => ({}));
+        if (activityRes.ok && activityData.success) {
+          activity = {
+            logs: Array.isArray(activityData.logs) ? activityData.logs : [],
+            queue: Array.isArray(activityData.queue) ? activityData.queue : [],
+            copied_trades: Array.isArray(activityData.copied_trades) ? activityData.copied_trades : [],
+          };
+        }
+      } catch (_) {}
+
+      setData({
+        ...d,
+        settings: s,
+        logs: activity.logs,
+        queue: activity.queue,
+        trades: activity.copied_trades,
+        copied_trades: activity.copied_trades,
+      });
       setForm({ enabled: !!s.enabled, trade_amount_usdt: s.trade_amount_usdt || 25, max_capital_usdt: s.max_capital_usdt || 100, exit_target: s.exit_target || "tp1" });
     } catch(e) { setErr(e.message || "Cannot load Auto Copy"); }
     finally { setBusy(false); }
@@ -1530,8 +1551,54 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
           <button className="clear stopCopyBtn" onClick={() => saveSettings(false)} disabled={busy || !settings.enabled}>Turn Auto Copy OFF</button>
         </div>
       </div>
-      <div className="panel wide autoPanel"><h3>Live Copy Logs</h3>{(data?.logs || []).length === 0 ? <div className="empty small">No copy logs yet.</div> : <div className="copyLogs">{data.logs.map(l=><div key={l.id} className={`copyLog ${l.event_type}`}><b>{l.event_type}</b><span>{l.message}</span><em>{new Date(Number(l.created_at || 0)).toLocaleString()}</em></div>)}</div>}</div>
-      <div className="panel wide autoPanel"><h3>Copied Trades</h3>{(data?.trades || []).length === 0 ? <div className="empty small">No copied trades yet.</div> : <div className="copyTradeList">{data.trades.map(t=><div key={t.id} className="copyTrade"><b>#{t.symbol}</b><span>{t.status} · {Number(t.trade_amount_usdt || 0).toFixed(2)} USDT · Exit {String(t.exit_target || '').toUpperCase()}</span><em>{t.pnl_pct ? `${Number(t.pnl_pct).toFixed(2)}%` : "—"}</em></div>)}</div>}</div>
+      <div className="panel wide autoPanel">
+        <div className="sectionHead compact">
+          <div>
+            <h3>Live Copy Logs</h3>
+            <span>Latest Auto Copy actions and Binance errors.</span>
+          </div>
+          <button type="button" className="clear" onClick={load} disabled={busy}>Refresh</button>
+        </div>
+        {(data?.logs || []).length === 0 ? (
+          <div className="empty small">No copy logs yet.</div>
+        ) : (
+          <div className="copyLogs">
+            {(data?.logs || []).map(l => {
+              const logStatus = String(l.status || l.event_type || "log");
+              const logTime = safeTimeMs(l.created_at);
+              return (
+                <div key={l.id} className={`copyLog ${logStatus}`}>
+                  <b>{logStatus.toUpperCase()}</b>
+                  <span>{sym(l.symbol)} {l.message || "Auto Copy update"}</span>
+                  <em>{logTime ? new Date(logTime).toLocaleString() : "—"}</em>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="panel wide autoPanel">
+        <div className="sectionHead compact">
+          <div>
+            <h3>Copied Trades</h3>
+            <span>Trades that opened successfully on Binance.</span>
+          </div>
+        </div>
+        {(data?.trades || data?.copied_trades || []).length === 0 ? (
+          <div className="empty small">No copied trades yet.</div>
+        ) : (
+          <div className="copyTradeList">
+            {(data?.trades || data?.copied_trades || []).map(t => (
+              <div key={t.id} className="copyTrade">
+                <b>#{sym(t.symbol)}</b>
+                <span>{String(t.status || "open").toUpperCase()} · {Number(t.trade_amount_usdt || 0).toFixed(2)} USDT · Qty {Number(t.qty || 0).toFixed(6)} · Exit {String(t.exit_target || "tp1").toUpperCase()}</span>
+                <em>{t.pnl_pct !== null && t.pnl_pct !== undefined ? `${Number(t.pnl_pct).toFixed(2)}%` : "—"}</em>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
