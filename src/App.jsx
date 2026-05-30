@@ -1415,6 +1415,16 @@ function AutoCopyPanel({ user, freeModeActive, onUpgrade }) {
       {freeModeActive && <div className="copyFreeBanner">🎁 Free Mode Active — Auto Copy Pro access is open. It only runs if you enable it yourself.</div>}
       {pausedBySubscription && <div className="copyPausedBanner">⏸️ Auto Copy paused — subscription required. No new Binance trades will be copied, and your Binance connection stays saved.</div>}
       {err && <div className="error">{err}</div>}{msg && <div className="successBox">{msg}</div>}
+
+      <div className="copyPausedBanner autoCopyManualNotice">
+        <b>Important Auto Copy Notice:</b>
+        <span>
+          When Auto Copy is enabled, do not place manual Binance Sell orders for copied trades.
+          SHAABAN automatically places TP/SL OCO protection based on your selected exit target.
+          Manual Binance orders may lock your balance and prevent protection orders.
+        </span>
+      </div>
+
       <div className="autoCopyGrid">
                 <div className="panel autoPanel">
           <h3>🔐 Binance Auto Copy Status</h3>
