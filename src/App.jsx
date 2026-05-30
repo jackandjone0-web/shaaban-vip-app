@@ -296,6 +296,7 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
   const [remember, setRemember] = useState(true);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [regName, setRegName] = useState("");
   const [regUsername, setRegUsername] = useState("");
@@ -417,7 +418,16 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
     }
   }
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   async function resendCode() {
+    if (resendCooldown > 0) return;
     setErr("");
     setBusy(true);
     try {
@@ -428,7 +438,11 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
         body: JSON.stringify({ username: verifyUsername, email: verifyEmail }),
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Could not resend code");
+      if (!res.ok || !data.success) {
+        if (data.wait_seconds) setResendCooldown(Number(data.wait_seconds));
+        throw new Error(data.error || "Could not resend code");
+      }
+      setResendCooldown(Number(data.wait_seconds || 60));
       setPendingMessage(data.message || "Verification code sent again. Check Inbox or Spam.");
     } catch (e) {
       setErr(e.message || "Could not resend code");
@@ -497,7 +511,9 @@ function Login({ onLogin, onBack, theme, toggleTheme }) {
           <input className="otpInput" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} onKeyDown={(e)=>e.key==="Enter"&&verifyEmailCode()} placeholder="6-digit code" />
           {err && <div className="error">{err}</div>}
           <button className="primary" onClick={verifyEmailCode} disabled={busy || otp.length !== 6}>{busy ? "Verifying..." : "Verify Email"}</button>
-          <button className="clear full" onClick={resendCode} disabled={busy}>{busy ? "Please wait..." : "Resend Code"}</button>
+          <button className="clear full" onClick={resendCode} disabled={busy || resendCooldown > 0}>
+            {busy ? "Please wait..." : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
+          </button>
           <button className="clear full" onClick={() => setMode("login")}>Back to Login</button>
         </div>
       </div>
